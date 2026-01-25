@@ -1,0 +1,96 @@
+#!/bin/bash
+
+
+if [ "$(id -u)" != "0" ]; then
+   echo "This script must be run as root" 1>&2
+   exit 1
+fi
+
+
+# install apache & php
+apt update
+apt install -y python3
+apt install -y python3-pip
+pip3 install requests
+pip3 install random_username
+pip3 install yara-python
+pip3 install watchdog
+apt install -y apache2
+apt install -y php libapache2-mod-php
+systemctl enable apache2
+
+
+# asks for template option number
+echo -e "\n\n\nTemplates -- https://github.com/DJShankyShoe/yetToBeNamed/tree/master/template%20designs"
+exist="false"
+
+
+# verifies template directory
+while [ $exist = "false" ]
+do
+    echo -n "Choose your website template (1/2/3/....): "
+    read template
+    if [ -d "template designs/template $template" ]; then
+        exist="true"
+        echo
+    else
+        echo -e "Invalid template number\n"
+    fi
+done
+
+
+# create signatures & scripts
+mkdir /opt/signatures
+mkdir /opt/scripts
+cp scripts/* /opt/scripts/
+cp creds.txt /opt/signatures/
+touch /opt/signatures/myhash.txt
+touch /opt/signatures/live.yara
+
+
+# dealing with permissions in signature folder
+chmod -R 776 /opt/signatures/*
+
+chown -R root:root /opt/scripts
+chmod -R 755 /opt/scripts
+
+chown root:www-data /opt/scripts
+chmod 775 /opt/scripts
+
+
+# move installation web files to apache folder - html
+mkdir /var/www/html
+rm /var/www/html/* -r -f
+cp -r "template designs/template 1"/* /var/www/html/
+cp php/* /var/www/html/
+cp blocked.html /var/www/html/
+
+
+# dealing with permissions in apache html folder
+chown -R root:root /var/www/html
+chmod -R 755 /var/www/html
+
+chown root:www-data /var/www/html
+chmod 775 /var/www/html
+
+
+# dealing with permissions in fingerprint logs
+mkdir /var/log/scythe
+touch /var/log/scythe/status.txt
+chown -R root:www-data /var/log/scythe
+chmod -R 774 /var/log/scythe
+
+
+# configure apache2.service
+sed -i 's/PrivateTmp=true/PrivateTmp=false/' /etc/systemd/system/multi-user.target.wants/apache2.service
+systemctl daemon-reload
+
+
+# modify apache configuration folder
+echo -e "<Directory /var/www/html>\n        Options none\n        Require all granted\n</Directory>\n\n<Files fingerprint.php>\n    Order Deny,Allow\n    Deny from all\n</Files>" >> /etc/apache2/apache2.conf
+
+
+# restart apache service to apply changes
+systemctl restart apache2
+
+echo -e "Setup Complete. Web Server Running\n"
