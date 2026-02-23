@@ -26,6 +26,7 @@ FINGERPRINTS_COLLECTION = "fingerprints"
 fingerprint_log_file = "/var/log/scythe/fingerprint.txt"
 signature_path = "/opt/signatures/"
 rules_file = "/opt/honeyprint/rules/default.json"
+scores_file = "/opt/honeyprint/rules/scores.json"
 
 uniqueID = sys.argv[1]
 
@@ -34,6 +35,9 @@ with open(fingerprint_log_file, 'r') as log:
 
 with open(rules_file, 'r') as f:
     rules = json.load(f) 
+
+with open(scores_file, 'r') as f:
+    scores = json.load(f) 
 
 
 TIER1_FIELDS = [
@@ -133,7 +137,30 @@ def compute_tier_hash(data, field_list):
     combined = "|".join(values)
     return hashlib.sha256(combined.encode('utf-8')).hexdigest()
 
-def lookup_fingerprint_actions(client, full_hash, tier1_hash):
+def find_raw_fingerprint(client, uid): 
+    try:
+        db = client[DB_NAME]
+        logs_collection = db[RAW_LOGS_COLLECTION]
+
+        log = logs_collection.find_one(
+                {"uid": uid},
+                sort=[('timestamp', -1)]
+                )
+    # Extract JSON
+        json_data = re.search(f"\\[\\d+:\\w+:\\d+:\\d+:\\d+:\\d+\\s(\\W|\\D)\\d+]\\s{uniqueID}\\s(.*)", log["raw_log"]).group(2)
+        json_data = json.loads(json_data)
+    except Exception as e:
+        print(f"Failed to find UID: {e}")
+        return -1
+
+    # Compute hashes
+    tier1_hash = compute_tier_hash(json_data, TIER1_FIELDS)
+    full_hash = compute_tier_hash(json_data, TIER1_FIELDS + TIER2_FIELDS)
+    return (tier1_hash, full_hash)
+
+
+
+def lookup_fingerprint(client, full_hash, tier1_hash):
     """
     Lookup fingerprint by hash
 
@@ -152,7 +179,7 @@ def lookup_fingerprint_actions(client, full_hash, tier1_hash):
         full   Full hash hit aka same fingerprint, high confidence
 
         actions List of actions from db
-        attack_type Type of attack
+        attack_types Type of attack
     """
     try:
         db = client[DB_NAME]
@@ -164,7 +191,7 @@ def lookup_fingerprint_actions(client, full_hash, tier1_hash):
                 )
         match = -1
         actions = []
-        attack_type = ""
+        attack_type = []
 
         if not fingerprint:
             fingerprint = fingerprints_collection.find_one(
@@ -176,16 +203,16 @@ def lookup_fingerprint_actions(client, full_hash, tier1_hash):
             else:
                 match = "tier1"
                 actions = fingerprint["actions"]
-                attack_type = fingerprint["observations"][0]["attackType"]
+                attack_type = [ i['attackType'] for i in fingerprint["observations"] ]
         else:
             match = "full"
             actions = fingerprint["actions"]
-            attack_type = fingerprint["observations"][0]["attackType"]
+            attack_type = [ i['attackType'] for i in fingerprint["observations"] ]
                 
         return {
                 "match": match,
                 "actions": actions,
-                "attack_type": attack_type
+                "attack_types": list(set(attack_type))
                 }
         
     except Exception as e:
@@ -194,41 +221,78 @@ def lookup_fingerprint_actions(client, full_hash, tier1_hash):
                 "match": -1,
                 }
 
-def determine_action(attack_type, match):
-    return rules[attack_type][match]
+def compute_risk(attack_types, match, attempts=0):
+    """
+    Compute total risk based on attack types, match type and behavior
+    """
+    risk = 0
 
-def main():
+    # Use highest attack risk if multiple attack types
+    attack_scores = rules.get("attack_risk", {})
+    for attack in attack_types:
+        risk = max(risk, attack_scores.get(attack, attack_scores.get("unknown", 20)))
+
+    # Add match risk
+    match_scores = rules.get("match_risk", {})
+    risk += match_scores.get(match, 0)
+
+    # Behavior risk (optional for future use)
+    behavior_cfg = rules.get("behavior_risk", {})
+    per_attempt = behavior_cfg.get("per_attempt", 0)
+    max_attempt = behavior_cfg.get("max_attempt_risk", 0)
+    risk += min(attempts * per_attempt, max_attempt)
+
+    return min(risk, 100)
+
+def risk_to_actions(risk):
+    """
+    Map risk score to actions using threshold table
+    """
+    thresholds = scores.get("risk_thresholds", {})
+
+    # Convert keys to sorted integers
+    sorted_thresholds = sorted(
+        [(int(k), v) for k, v in thresholds.items()],
+        key=lambda x: x[0]
+    )
+
+    selected_actions = ["allow"]
+
+    for threshold, actions in sorted_thresholds:
+        if risk >= threshold:
+            selected_actions = actions
+        else:
+            break
+
+    return selected_actions
+
+def determine_action():
     # Connect to MongoDB
     try:
         client = MongoClient(MONGO_URI, serverSelectionTimeoutMS=5000)
         client.admin.command('ping')
-        print("Connected to MongoDB")
+        #print("Connected to MongoDB")
     except Exception as e:
         print(f"Could not connect to MongoDB: {e}")
         sys.exit(1)
     
-    # Extract JSON
-    try:
-        json_data = re.search(f"\\[\\d+:\\w+:\\d+:\\d+:\\d+:\\d+\\s(\\W|\\D)\\d+]\\s{uniqueID}\\s(.*)", fingerprints).group(2)
-        json_data = json.loads(json_data)
-    except Exception as e:
-        print(f"Failed to find UID: {e}")
-        sys.exit(1)
 
     # Compute hashes
-    tier1_hash = compute_tier_hash(json_data, TIER1_FIELDS)
-    full_hash = compute_tier_hash(json_data, TIER1_FIELDS + TIER2_FIELDS)
+    tier1_hash, full_hash = find_raw_fingerprint(client, uniqueID)
     
     # Lookup hash in db
-    result = lookup_fingerprint_actions(client, full_hash, tier1_hash)
+    result = lookup_fingerprint(client, full_hash, tier1_hash)
     if result["match"] != -1:
         if result["actions"] != []:
             print(f"Actions found: {result['actions']}")
             return result["actions"]
         else:
-            return determine_action(result["attack_type"], result["match"])
+            print(f"Attack types: {result['attack_types']}")
+            risk_score = compute_risk(result["attack_types"], result["match"], 1)
+            threshold_level =  risk_to_actions(risk_score)
+            return scores["level_actions"][str(threshold_level)]
     else:
         sys.exit(1)
 
 if __name__ == "__main__":
-    print(main())
+    print(determine_action())
