@@ -1,0 +1,17 @@
+{
+  "attack_risk": {
+    "sqli": 30,
+    "bruteforce": 20,
+    "scanning": 10,
+    "unknown": 0
+  },
+  "match_risk": {
+    "full": 0,
+    "tier1": 20,
+    "none": 0
+  },
+  "behavior_risk": {
+    "per_attempt": 5,
+    "max_attempt_risk": 20
+  }
+}
