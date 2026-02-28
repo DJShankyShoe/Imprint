@@ -358,8 +358,7 @@ if (class_exists('MongoDB\Client')) {
         $collection->insertOne($document);
         $inserted = true;
     } catch (Exception $e) {
-        $errorMsg = "[" . gmdate("d:M:Y:H:i:s") . " +0000] MongoDB\Client insert failed: " . $e->getMessage() . "\n";
-        @file_put_contents("/var/log/scythe/fingerprint_errors.log", $errorMsg, FILE_APPEND | LOCK_EX);
+        // Silent fail - will try fallback
     }
 }
 
@@ -372,15 +371,8 @@ if (!$inserted && class_exists('MongoDB\Driver\Manager')) {
         $manager->executeBulkWrite("{$mongoDb}.{$mongoCollection}", $bulk);
         $inserted = true;
     } catch (Exception $e) {
-        $errorMsg = "[" . gmdate("d:M:Y:H:i:s") . " +0000] MongoDB raw driver insert failed: " . $e->getMessage() . "\n";
-        @file_put_contents("/var/log/scythe/fingerprint_errors.log", $errorMsg, FILE_APPEND | LOCK_EX);
+        // Silent fail
     }
-}
-
-// Critical error if MongoDB unavailable
-if (!$inserted) {
-    $errorMsg = "[" . gmdate("d:M:Y:H:i:s") . " +0000] CRITICAL: MongoDB unavailable - UID: {$uid} - Data lost\n";
-    @file_put_contents("/var/log/scythe/fingerprint_errors.log", $errorMsg, FILE_APPEND | LOCK_EX);
 }
 
 // Self-destruct
