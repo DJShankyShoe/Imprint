@@ -168,10 +168,10 @@ The script will install and configure:
 
 ### Access URLs
 
-| Site | Localhost | Domain |
-|------|-----------|--------|
-| ZebraPal (Honeypot) | `https://localhost:8443` | `https://zebrapal.ddns.net` |
-| SpaceY (Production) | `https://localhost:443` | `https://spacey.ddns.net` |
+| Site | Domain |
+|------|-----------|
+| ZebraPal (Honeypot) | `https://localhost:8443` |
+| SpaceY (Production) | `https://localhost:443` |
 
 ---
 
