@@ -422,7 +422,7 @@ After successfuly executing `pastebin_api.py`, the honeypot credentials would be
 
 ## Integration
 
-When you want the user fingerprints to be collected & logged, include the following code `require "../fingerprint.php";` in your web files. This can be placed and executed on the login page when the user has performed a **successful**/**failed** login. <br>
+If you want the user fingerprints to be collected & logged, include the following code `require "../fingerprint.php";` in your web files. This can be placed and executed on the login page when the user has performed a **successful**/**failed** login. <br>
 If you want the fingerprint extraction to be done before visiting a page, it's best to call another web file that executes the `fingerprint.php` before redirecting the user to the visited page.
 
 The fingerprint will be logged at `/var/log/scythe/fingerprint.txt` path. So create directory if doesn't exist. **Do make sure that the log path is writable by web-service**
@@ -430,7 +430,7 @@ The fingerprint will be logged at `/var/log/scythe/fingerprint.txt` path. So cre
 `yaraGen.py` is responsible for extracting fingerprint logs and converting them into signatures. Signatures can be found on the following path `/opt/signatures`. **Do make sure to create an empty file `myhash.txt` before executing `yaraGen.py`**
 
 
-## Why create signatures from browser fingerprints
+## Why create Signatures from Browser Fingerprints?
 
 ### Reduce False Positives
 Organisations have been mostly using only IP Addresses to deal with bad actors. Sometimes this information is not enough as these IP's could come from organisations, merchants, or any shared groups. These can largely affect customers when using single information like IP for blocks, challenges or rate-limiting. Thus, to limit false positives, we can use browser fingerprints to uniquely identify bad actors among actors for defensive measures without affecting customers and merchants.
