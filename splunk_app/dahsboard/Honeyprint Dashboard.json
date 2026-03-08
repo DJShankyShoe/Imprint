@@ -1,0 +1,518 @@
+{
+  "title": "Honeyprint Dashboard",
+  "description": "Search and investigate browser fingerprints by Full Hash, Tier1 Hash, IP address, or Attack Type.",
+  "inputs": {
+    "input_global_trp": {
+      "options": {
+        "defaultValue": "0,now",
+        "token": "global_time"
+      },
+      "title": "Global Time Range",
+      "type": "input.timerange"
+    },
+    "input_search_type": {
+      "options": {
+        "defaultValue": "show_all",
+        "items": [
+          {
+            "label": "Show All",
+            "value": "show_all"
+          },
+          {
+            "label": "Full Hash",
+            "value": "full_hash"
+          },
+          {
+            "label": "Tier1 Hash",
+            "value": "tier1_hash"
+          },
+          {
+            "label": "IP Address",
+            "value": "ip"
+          },
+          {
+            "label": "Attack Type",
+            "value": "attack_type"
+          }
+        ],
+        "token": "search_type"
+      },
+      "title": "Search By",
+      "type": "input.dropdown"
+    },
+    "input_search_value": {
+      "options": {
+        "defaultValue": "*",
+        "token": "search_value"
+      },
+      "title": "Search Value",
+      "type": "input.text"
+    }
+  },
+  "defaults": {
+    "dataSources": {
+      "ds.search": {
+        "options": {
+          "queryParameters": {
+            "earliest": "$global_time.earliest$",
+            "latest": "$global_time.latest$"
+          }
+        }
+      },
+      "ds.spl2": {
+        "options": {
+          "queryParameters": {
+            "earliest": "$global_time.earliest$",
+            "latest": "$global_time.latest$"
+          }
+        }
+      }
+    },
+    "visualizations": {
+      "global": {
+        "showProgressBar": true
+      }
+    }
+  },
+  "visualizations": {
+    "viz_attack_type_chart": {
+      "dataSources": {
+        "primary": "ds_attack_type_count"
+      },
+      "options": {
+        "labelDisplay": "valuesAndPercentage"
+      },
+      "title": "Attack Types",
+      "type": "splunk.pie"
+    },
+    "viz_ip_table": {
+      "dataSources": {
+        "primary": "ds_ip_count"
+      },
+      "options": {
+        "count": 20,
+        "drilldown": "none"
+      },
+      "title": "Unique IPs",
+      "type": "splunk.table"
+    },
+    "viz_private_count": {
+      "dataSources": {
+        "primary": "ds_private_count"
+      },
+      "options": {
+        "backgroundColor": "transparent",
+        "majorColor": "#a9d4ff",
+        "majorFontSize": 48
+      },
+      "title": "Private Browsing",
+      "type": "splunk.singlevalue"
+    },
+    "viz_proxy_count": {
+      "dataSources": {
+        "primary": "ds_proxy_count"
+      },
+      "options": {
+        "backgroundColor": "transparent",
+        "majorColor": "#f8c555",
+        "majorFontSize": 48
+      },
+      "title": "Via Proxy",
+      "type": "splunk.singlevalue"
+    },
+    "viz_results_table": {
+      "dataSources": {
+        "primary": "ds_observations_search"
+      },
+      "options": {
+        "count": 10000,
+        "drilldown": "none",
+        "showRowNumbers": true
+      },
+      "title": "Observation Results",
+      "type": "splunk.table"
+    },
+    "viz_total_count": {
+      "dataSources": {
+        "primary": "ds_total_count"
+      },
+      "options": {
+        "backgroundColor": "transparent",
+        "majorColor": "#ffffff",
+        "majorFontSize": 48
+      },
+      "title": "Total Observations",
+      "type": "splunk.singlevalue"
+    },
+    "viz_honeypot_total_commands": {
+      "dataSources": {
+        "primary": "ds_honeypot_total_commands"
+      },
+      "options": {
+        "backgroundColor": "transparent",
+        "majorColor": "#ffffff",
+        "majorFontSize": 48
+      },
+      "title": "Total Commands",
+      "type": "splunk.singlevalue"
+    },
+    "viz_honeypot_unique_ips": {
+      "dataSources": {
+        "primary": "ds_honeypot_unique_ips"
+      },
+      "options": {
+        "backgroundColor": "transparent",
+        "majorColor": "#f8c555",
+        "majorFontSize": 48
+      },
+      "title": "Unique IPs",
+      "type": "splunk.singlevalue"
+    },
+    "viz_honeypot_unique_users": {
+      "dataSources": {
+        "primary": "ds_honeypot_unique_users"
+      },
+      "options": {
+        "backgroundColor": "transparent",
+        "majorColor": "#a9d4ff",
+        "majorFontSize": 48
+      },
+      "title": "Unique Usernames",
+      "type": "splunk.singlevalue"
+    },
+    "viz_honeypot_top_commands": {
+      "dataSources": {
+        "primary": "ds_honeypot_top_commands"
+      },
+      "options": {
+        "count": 15,
+        "drilldown": "none"
+      },
+      "title": "Top Commands",
+      "type": "splunk.table"
+    },
+    "viz_honeypot_top_ips": {
+      "dataSources": {
+        "primary": "ds_honeypot_top_ips"
+      },
+      "options": {
+        "count": 15,
+        "drilldown": "none"
+      },
+      "title": "Top Attack IPs",
+      "type": "splunk.table"
+    },
+    "viz_honeypot_command_timeline": {
+      "dataSources": {
+        "primary": "ds_honeypot_command_timeline"
+      },
+      "options": {},
+      "title": "Command Activity Timeline",
+      "type": "splunk.line"
+    },
+    "viz_honeypot_all_commands": {
+      "dataSources": {
+        "primary": "ds_honeypot_all_commands"
+      },
+      "options": {
+        "count": 10000,
+        "drilldown": "none",
+        "showRowNumbers": true
+      },
+      "title": "All Commands",
+      "type": "splunk.table"
+    }
+  },
+  "dataSources": {
+    "ds_attack_type_count": {
+      "name": "Attack Type Count",
+      "options": {
+        "extend": "ds_base",
+        "query": "| stats count BY obs_attackType | rename obs_attackType AS \"Attack Type\", count AS \"Count\""
+      },
+      "type": "ds.chain"
+    },
+    "ds_base": {
+      "name": "Base Search",
+      "options": {
+        "query": "index=\"mongo_honeyprint\" sourcetype=\"mongodb:honeyprint:fingerprints\"\n| rex field=_raw \"_id=\\\"(?<mongo_id>[^\\\"]+)\\\"\"\n| rex field=_raw \"full_hash=\\\"(?<full_hash>[^\\\"]+)\\\"\"\n| rex field=_raw \"tier1_hash=\\\"(?<tier1_hash>[^\\\"]+)\\\"\"\n| rex field=_raw \"updated_at=\\\"(?<updated_at>[^\\\"]+)\\\"\"\n| rex field=_raw \"observations=\\\"(?<observations_raw>\\{.+\\})\\\"\"\n| sort 0 - updated_at\n| dedup mongo_id\n| rex field=observations_raw max_match=0 \"(?<single_obs>\\{[^}]+\\})\"\n| mvexpand single_obs\n| rex field=single_obs \"\\\"timestamp\\\":\\s*(?<obs_timestamp>[0-9]+)\"\n| rex field=single_obs \"\\\"ip\\\":\\s*\\\"(?<obs_ip>[^\\\"]+)\\\"\"\n| rex field=single_obs \"\\\"country\\\":\\s*\\\"(?<obs_country>[^\\\"]+)\\\"\"\n| rex field=single_obs \"\\\"attackType\\\":\\s*\\\"(?<obs_attackType>[^\\\"]+)\\\"\"\n| rex field=single_obs \"\\\"proxy\\\":\\s*(?<obs_proxy>true|false)\"\n| rex field=single_obs \"\\\"isPrivate\\\":\\s*(?<obs_isPrivate>true|false)\"\n| rex field=single_obs \"\\\"browserName\\\":\\s*\\\"(?<obs_browserName>[^\\\"]+)\\\"\"\n| rex field=single_obs \"\\\"os\\\":\\s*\\\"(?<obs_os>[^\\\"]+)\\\"\"\n| rex field=single_obs \"\\\"timezone\\\":\\s*\\\"(?<obs_timezone>[^\\\"]+)\\\"\"\n| rex field=single_obs \"\\\"userAgent\\\":\\s*\\\"(?<obs_userAgent>[^\\\"]+)\\\"\"\n| where isnotnull(obs_ip)\n| eval _sv=\"$search_value$\"\n| eval _st=\"$search_type$\"\n| eval _match=case(_st==\"show_all\", 1, _st==\"full_hash\", if(full_hash=_sv,1,0), _st==\"tier1_hash\", if(tier1_hash=_sv,1,0), _st==\"ip\", if(obs_ip=_sv,1,0), _st==\"attack_type\", if(obs_attackType=_sv,1,0), 1=1, 0)\n| where _match=1\n| eval Timestamp=strftime(obs_timestamp/1000, \"%Y-%m-%d %H:%M:%S\")"
+      },
+      "type": "ds.search"
+    },
+    "ds_ip_count": {
+      "name": "IP Count",
+      "options": {
+        "extend": "ds_base",
+        "query": "| stats count BY obs_ip, obs_country, obs_proxy | rename obs_ip AS \"IP\", obs_country AS \"Country\", obs_proxy AS \"Proxy\", count AS \"Observation Count\""
+      },
+      "type": "ds.chain"
+    },
+    "ds_observations_search": {
+      "name": "Observations Search",
+      "options": {
+        "extend": "ds_base",
+        "query": "| table Timestamp, obs_ip, obs_country, obs_attackType, obs_proxy, obs_isPrivate, obs_browserName, obs_os, obs_timezone, obs_userAgent, full_hash, tier1_hash | rename obs_ip AS \"IP\", obs_country AS \"Country\", obs_attackType AS \"Attack Type\", obs_proxy AS \"Proxy\", obs_isPrivate AS \"Private\", obs_browserName AS \"Browser\", obs_os AS \"OS\", obs_timezone AS \"Timezone\", obs_userAgent AS \"User Agent\", full_hash AS \"Full Hash\", tier1_hash AS \"Tier1 Hash\""
+      },
+      "type": "ds.chain"
+    },
+    "ds_private_count": {
+      "name": "Private Count",
+      "options": {
+        "extend": "ds_base",
+        "query": "| where obs_isPrivate=\"true\" | stats count"
+      },
+      "type": "ds.chain"
+    },
+    "ds_proxy_count": {
+      "name": "Proxy Count",
+      "options": {
+        "extend": "ds_base",
+        "query": "| where obs_proxy=\"true\" | stats count"
+      },
+      "type": "ds.chain"
+    },
+    "ds_total_count": {
+      "name": "Total Count",
+      "options": {
+        "extend": "ds_base",
+        "query": "| stats count"
+      },
+      "type": "ds.chain"
+    },
+    "ds_honeypot_base": {
+      "name": "Honeypot Base Search",
+      "options": {
+        "query": "index=\"honeyprint\" sourcetype=\"honeyprint:commands\"\n| rex field=_raw max_match=0 \"(?<json_event>\\{[^}]+\\})\"\n| mvexpand json_event\n| rex field=json_event \"\\\"timestamp\\\":\\\"(?<timestamp>[^\\\"]+)\\\"\"\n| rex field=json_event \"\\\"uid\\\":\\\"(?<uid>[^\\\"]+)\\\"\"\n| rex field=json_event \"\\\"username\\\":\\\"(?<username>[^\\\"]+)\\\"\"\n| rex field=json_event \"\\\"ip\\\":\\\"(?<ip>[^\\\"]+)\\\"\"\n| rex field=json_event \"\\\"user_agent\\\":\\\"(?<user_agent>.+?)\\\",\\\"command\\\"\"\n| rex field=json_event \"\\\"command\\\":\\\"(?<command>.+?)\\\",\\\"session_id\\\"\"\n| rex field=json_event \"\\\"session_id\\\":\\\"(?<session_id>[^\\\"]*)\\\"\"\n| where isnotnull(command)\n| eval Timestamp=timestamp"
+      },
+      "type": "ds.search"
+    },
+    "ds_honeypot_total_commands": {
+      "name": "Honeypot Total Commands",
+      "options": {
+        "extend": "ds_honeypot_base",
+        "query": "| stats count"
+      },
+      "type": "ds.chain"
+    },
+    "ds_honeypot_unique_ips": {
+      "name": "Honeypot Unique IPs",
+      "options": {
+        "extend": "ds_honeypot_base",
+        "query": "| stats dc(ip)"
+      },
+      "type": "ds.chain"
+    },
+    "ds_honeypot_unique_users": {
+      "name": "Honeypot Unique Users",
+      "options": {
+        "extend": "ds_honeypot_base",
+        "query": "| stats dc(username)"
+      },
+      "type": "ds.chain"
+    },
+    "ds_honeypot_top_commands": {
+      "name": "Honeypot Top Commands",
+      "options": {
+        "extend": "ds_honeypot_base",
+        "query": "| stats count by command | sort - count | head 15 | rename command AS \"Command\", count AS \"Count\""
+      },
+      "type": "ds.chain"
+    },
+    "ds_honeypot_top_ips": {
+      "name": "Honeypot Top IPs",
+      "options": {
+        "extend": "ds_honeypot_base",
+        "query": "| stats count by ip, username | sort - count | head 15 | rename ip AS \"IP\", username AS \"Username\", count AS \"Commands\""
+      },
+      "type": "ds.chain"
+    },
+    "ds_honeypot_command_timeline": {
+      "name": "Honeypot Command Timeline",
+      "options": {
+        "extend": "ds_honeypot_base",
+        "query": "| timechart span=1h count"
+      },
+      "type": "ds.chain"
+    },
+    "ds_honeypot_all_commands": {
+      "name": "Honeypot All Commands",
+      "options": {
+        "extend": "ds_honeypot_base",
+        "query": "| table Timestamp, ip, username, command, user_agent, uid, session_id | rename ip AS \"IP\", username AS \"Username\", command AS \"Command\", user_agent AS \"User Agent\", uid AS \"UID\", session_id AS \"Session ID\""
+      },
+      "type": "ds.chain"
+    }
+  },
+  "layout": {
+    "globalInputs": [
+      "input_global_trp",
+      "input_search_type",
+      "input_search_value"
+    ],
+    "layoutDefinitions": {
+      "layout_1": {
+        "options": {
+          "display": "auto",
+          "height": 960,
+          "width": 1440
+        },
+        "structure": [
+          {
+            "item": "viz_total_count",
+            "position": {
+              "h": 120,
+              "w": 300,
+              "x": 20,
+              "y": 20
+            },
+            "type": "block"
+          },
+          {
+            "item": "viz_proxy_count",
+            "position": {
+              "h": 120,
+              "w": 300,
+              "x": 340,
+              "y": 20
+            },
+            "type": "block"
+          },
+          {
+            "item": "viz_private_count",
+            "position": {
+              "h": 120,
+              "w": 300,
+              "x": 660,
+              "y": 20
+            },
+            "type": "block"
+          },
+          {
+            "item": "viz_attack_type_chart",
+            "position": {
+              "h": 280,
+              "w": 440,
+              "x": 980,
+              "y": 20
+            },
+            "type": "block"
+          },
+          {
+            "item": "viz_ip_table",
+            "position": {
+              "h": 140,
+              "w": 940,
+              "x": 20,
+              "y": 160
+            },
+            "type": "block"
+          },
+          {
+            "item": "viz_results_table",
+            "position": {
+              "h": 620,
+              "w": 1400,
+              "x": 20,
+              "y": 320
+            },
+            "type": "block"
+          }
+        ],
+        "type": "absolute"
+      },
+      "layout_2": {
+        "options": {
+          "display": "auto",
+          "height": 1200,
+          "width": 1440
+        },
+        "structure": [
+          {
+            "item": "viz_honeypot_total_commands",
+            "position": {
+              "h": 120,
+              "w": 450,
+              "x": 20,
+              "y": 20
+            },
+            "type": "block"
+          },
+          {
+            "item": "viz_honeypot_unique_ips",
+            "position": {
+              "h": 120,
+              "w": 450,
+              "x": 500,
+              "y": 20
+            },
+            "type": "block"
+          },
+          {
+            "item": "viz_honeypot_unique_users",
+            "position": {
+              "h": 120,
+              "w": 450,
+              "x": 970,
+              "y": 20
+            },
+            "type": "block"
+          },
+          {
+            "item": "viz_honeypot_command_timeline",
+            "position": {
+              "h": 200,
+              "w": 1410,
+              "x": 20,
+              "y": 160
+            },
+            "type": "block"
+          },
+          {
+            "item": "viz_honeypot_top_commands",
+            "position": {
+              "h": 280,
+              "w": 740,
+              "x": 20,
+              "y": 380
+            },
+            "type": "block"
+          },
+          {
+            "item": "viz_honeypot_top_ips",
+            "position": {
+              "h": 280,
+              "w": 660,
+              "x": 770,
+              "y": 380
+            },
+            "type": "block"
+          },
+          {
+            "item": "viz_honeypot_all_commands",
+            "position": {
+              "h": 500,
+              "w": 1410,
+              "x": 20,
+              "y": 680
+            },
+            "type": "block"
+          }
+        ],
+        "type": "absolute"
+      }
+    },
+    "options": {},
+    "tabs": {
+      "items": [
+        {
+          "label": "MongoDB",
+          "layoutId": "layout_1"
+        },
+        {
+          "label": "Honeypot",
+          "layoutId": "layout_2"
+        }
+      ]
+    }
+  }
+}
