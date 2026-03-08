@@ -1,7 +1,0 @@
-[]
-access = read : [ * ], write : [ admin ]
-export = system
-
-[alert_actions/honeyprintAlert]
-export = system
-owner = nobody
