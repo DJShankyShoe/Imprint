@@ -51,7 +51,7 @@
 
 **Honeypot-Observed Web Fingerprint Signature System**
 
-An adaptive website protection framework that integrates device fingerprinting, threat monitoring, and dynamic mitigation. HoneyPrint tracks malicious actors across sessions using browser fingerprints (~93% re-identification rate), correlates activity with WAF threat intelligence, and applies graduated mitigation responses in real-time.
+An adaptive website protection framework that integrates device fingerprinting, threat monitoring, and dynamic mitigation. HoneyPrint tracks malicious actors across sessions using browser fingerprints, correlates activity with WAF threat intelligence, and applies graduated mitigation responses in real-time.
 
 ---
 
@@ -60,11 +60,10 @@ An adaptive website protection framework that integrates device fingerprinting, 
 HoneyPrint addresses automated attacks, credential stuffing, web scraping, and bot-driven abuse by using **browser fingerprinting** to persistently track threat actors—even when they rotate IPs, clear cookies, or use incognito mode.
 
 **Key Statistics:**
-- **~93%** device re-identification rate
 - **30+** browser signals collected per visitor (Canvas, WebGL, Audio, Fonts, Hardware, Platform, Network)
 - **6** graduated mitigation actions
-- **Tier 1** signatures: ~60% confidence (Platform, Browser, Device, Hardware)
-- **Tier 2** signatures: ~93% confidence (Tier 1 + Rendering Details)
+- **Tier 1** signatures: Lower confidence (Platform, Browser, Device, Hardware)
+- **Tier 2** signatures: Higher confidence (Tier 1 + Rendering Details)
 
 ---
 
@@ -102,8 +101,8 @@ HoneyPrint addresses automated attacks, credential stuffing, web scraping, and b
 
 ### Browser Fingerprinting Technology
 - **30+ signals collected**: Canvas rendering, WebGL, Audio context, Hardware specs, Platform details, Network info
-- **Tier 1 signatures** (~60% confidence): Platform + Browser + Device + Hardware
-- **Tier 2 signatures** (~93% confidence): Tier 1 + Canvas hash + WebGL renderer + Audio fingerprint
+- **Tier 1 signatures** (Lower confidence): Platform + Browser + Device + Hardware
+- **Tier 2 signatures** (Higher confidence): Tier 1 + Canvas hash + WebGL renderer + Audio fingerprint
 - **Passive collection**: Runs silently in background—users never know it's happening
 - **Cookieless persistence**: Survives clearing history, incognito mode, and browser restarts
 
