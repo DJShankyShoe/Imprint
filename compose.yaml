@@ -1,0 +1,130 @@
+# Imprint - Docker Compose
+#
+# Core: docker compose up -d
+#   mongo + imprint service
+#
+# POC:  docker compose --profile poc up -d
+#   core + web (SpaceY, ZebraPal, ModSecurity) + Splunk
+#
+# Settings: .env and mitigation.env
+
+name: imprint
+
+services:
+  # ==========================================================================
+  # CORE
+  # ==========================================================================
+  mongo:
+    image: mongo:8.0
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_ROOT_USER:-root}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD:?set MONGO_ROOT_PASSWORD in .env}
+      MONGO_INITDB_DATABASE: ${MONGO_DB:-imprint}
+      MONGO_USER: ${MONGO_USER:-imprint_user}
+      MONGO_PASSWORD: ${MONGO_PASSWORD:?set MONGO_PASSWORD in .env}
+      MONGO_DB: ${MONGO_DB:-imprint}
+    volumes:
+      - mongo_data:/data/db
+      - ./docker/mongo/init-imprint.js:/docker-entrypoint-initdb.d/init-imprint.js:ro
+    networks: [backend]
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+
+  imprint:
+    build:
+      context: .
+      dockerfile: docker/service/Dockerfile
+    restart: unless-stopped
+    depends_on:
+      mongo:
+        condition: service_healthy
+    environment:
+      MONGO_HOST: mongo
+      MONGO_PORT: "27017"
+      MONGO_USER: ${MONGO_USER:-imprint_user}
+      MONGO_PASSWORD: ${MONGO_PASSWORD}
+      MONGO_AUTH_DB: ${MONGO_DB:-imprint}
+      MONGO_DB: ${MONGO_DB:-imprint}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      IMPRINT_SITE_TOKEN: ${IMPRINT_SITE_TOKEN:?set IMPRINT_SITE_TOKEN in .env}
+      IMPRINT_ALERT_TOKEN: ${IMPRINT_ALERT_TOKEN:?set IMPRINT_ALERT_TOKEN in .env}
+      IMPRINT_CLASSIFIER_MODEL: ${IMPRINT_CLASSIFIER_MODEL:-claude-haiku-4-5}
+    volumes:
+      - payload_keys:/keys/payload     # service only
+      - session_keys:/keys/session     # shared with web
+      - audit_logs:/data/audit
+    # Service API (keep on an internal interface)
+    ports:
+      - "${IMPRINT_BIND:-127.0.0.1:8080}:8080"
+    networks: [backend]
+
+  # ==========================================================================
+  # POC
+  # ==========================================================================
+  web:
+    profiles: [poc]
+    build:
+      context: .
+      dockerfile: docker/web/Dockerfile
+    restart: unless-stopped
+    depends_on:
+      imprint:
+        condition: service_healthy
+    environment:
+      IMPRINT_SERVICE_URL: http://imprint:8080
+      IMPRINT_SITE_TOKEN: ${IMPRINT_SITE_TOKEN}
+      SPACEY_USERS: ${SPACEY_USERS:?set SPACEY_USERS in .env}
+      SPACEY_DB_HOST: ${SPACEY_DB_HOST:-localhost}
+      SPACEY_DB_NAME: ${SPACEY_DB_NAME:-spacey}
+      SPACEY_DB_USER: ${SPACEY_DB_USER:-root}
+      SPACEY_DB_PASS: ${SPACEY_DB_PASS:-}
+    env_file:
+      - path: mitigation.env
+        required: false
+    volumes:
+      - session_keys:/run/imprint/session:ro
+      - web_logs:/var/log/imprint
+    ports:
+      - "80:80"
+      - "443:443"      # SpaceY
+      - "8443:8443"    # ZebraPal
+    networks: [backend]
+
+  splunk:
+    profiles: [poc]
+    build:
+      context: .
+      dockerfile: docker/splunk/Dockerfile
+    restart: unless-stopped
+    depends_on:
+      imprint:
+        condition: service_healthy
+    environment:
+      # Accept Splunk licence
+      SPLUNK_START_ARGS: --accept-license
+      SPLUNK_GENERAL_TERMS: --accept-sgt-current-at-splunk-com
+      SPLUNK_PASSWORD: ${SPLUNK_PASSWORD:?set SPLUNK_PASSWORD in .env}
+      IMPRINT_SERVICE_URL: http://imprint:8080
+      IMPRINT_ALERT_TOKEN: ${IMPRINT_ALERT_TOKEN}
+      TZ: UTC
+    volumes:
+      - web_logs:/var/log/imprint:ro
+      - splunk_var:/opt/splunk/var
+    ports:
+      - "8000:8000"
+    networks: [backend]
+
+networks:
+  backend: {}
+
+volumes:
+  mongo_data:
+  payload_keys:
+  session_keys:
+  audit_logs:
+  web_logs:
+  splunk_var:

@@ -1,0 +1,8 @@
+# Credentials
+.env
+mitigation.env
+session_keys/
+
+# Python
+__pycache__/
+*.pyc

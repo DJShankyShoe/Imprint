@@ -1,0 +1,5 @@
+<nav search_view="search">
+  <view name="imprint_threat_intel" default="true" />
+  <view name="imprint_honeypot" />
+  <view name="search" />
+</nav>
