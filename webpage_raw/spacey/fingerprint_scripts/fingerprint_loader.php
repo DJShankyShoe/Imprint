@@ -239,13 +239,13 @@ class FingerprintLoader {
     let fingerprintCompleted = false;
     
     const cookies = document.cookie.split(';').map(c => c.trim());
-    const sessJweCookie = cookies.find(c => c.startsWith('sess_jwe='));
-    const hasCookie = !!sessJweCookie;
+    const trackingCookie = cookies.find(c => c.startsWith('imprint_uid='));
+    const hasCookie = !!trackingCookie;
     
-    debugLog('Checking for existing session cookie...');
-    debugLog('  sess_jwe cookie present:', hasCookie);
+    debugLog('Checking for existing tracking cookie...');
+    debugLog('  imprint_uid cookie present:', hasCookie);
     if (hasCookie && DEBUG) {
-        debugLog('  Cookie value:', sessJweCookie.substring(0, 50) + '...');
+        debugLog('  Cookie value:', trackingCookie.substring(0, 50) + '...');
     }
     
     if (hasCookie) {

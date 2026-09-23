@@ -154,7 +154,7 @@ def decrypt_payload(private_key, body):
 
 def decrypt_session_token(private_key, token):
     """
-    Decrypt sess_jwe token to extract UID
+    Decrypt the imprint_uid token to extract the UID
 
     Args:
         private_key: session private key

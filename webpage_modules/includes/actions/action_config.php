@@ -3,6 +3,10 @@
 // reCAPTCHA keys from mitigation.env
 require_once '/opt/imprint/env.php';
 
+// POC honeypot runs on the same host, port 8443 - override with HONEYPOT_URL in mitigation.env
+$honeypot_host = preg_replace('/:\d+$/', '', $_SERVER['HTTP_HOST'] ?? 'localhost');
+$honeypot_url  = imprint_mitigation_env('HONEYPOT_URL') ?: 'https://' . $honeypot_host . ':8443/';
+
 return [
   // ── Block ─────────────────────────────────────────────────────────────────
   'BLOCK_TTL_SECONDS'  => 15,
@@ -11,7 +15,7 @@ return [
   'BLOCK_FALLBACK_URL' => '/spacey/index.php',
 
   // ── Honeypot ──────────────────────────────────────────────────────────────
-  'HONEYPOT_URL'         => 'https://zebrapal.ddns.net/',
+  'HONEYPOT_URL'         => $honeypot_url,
   'HONEYPOT_STORE'       => __DIR__ . '/honeypot.json',
   'HONEYPOT_TTL_SECONDS' => 15,
   'HONEYPOT_COOKIE_NAME' => 'hp',

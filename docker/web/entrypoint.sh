@@ -21,7 +21,7 @@ write_env /opt/imprint/.env \
 
 # Mitigation PoC settings
 write_env /opt/imprint/mitigation.env \
-    RECAPTCHA_V2_SITEKEY RECAPTCHA_V2_SECRET GMAIL_USER GMAIL_APP_PASS OUTLOOK_USER OUTLOOK_APP_PASS
+    HONEYPOT_URL RECAPTCHA_V2_SITEKEY RECAPTCHA_V2_SECRET GMAIL_USER GMAIL_APP_PASS OUTLOOK_USER OUTLOOK_APP_PASS
 
 # Session keys from the Imprint service
 mkdir -p /opt/keys

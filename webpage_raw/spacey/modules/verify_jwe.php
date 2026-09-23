@@ -3,10 +3,10 @@ require_once __DIR__ . '/jwe_module.php';
 
 header('Content-Type: application/json');
 
-$token = $_COOKIE['sess_jwe'] ?? null;
+$token = $_COOKIE['imprint_uid'] ?? null;
 if (!$token) {
   http_response_code(400);
-  echo json_encode(['ok' => false, 'error' => 'No sess_jwe cookie']);
+  echo json_encode(['ok' => false, 'error' => 'No imprint_uid cookie']);
   exit;
 }
 

@@ -9,10 +9,15 @@
  */
 
 class AuthCheck {
-    
+
+    // Imprint owns the tracking cookie (UID only); the site keeps its own login cookie
+    const TRACKING_COOKIE = 'imprint_uid';
+    const SESSION_COOKIE  = 'site_session';
+
     private $jwe;
     private $token;
     private $session;
+    private $siteSession;
     private $hasValidToken;
     private $userUID;
     private $status;
@@ -51,9 +56,9 @@ class AuthCheck {
         $this->jwe = new JWEModule();
         $this->debugLog('✓ JWE module initialized');
         
-        // Check for token
-        $this->token = $_COOKIE['sess_jwe'] ?? null;
-        $this->debugLog('Checking for sess_jwe cookie...');
+        // Check for the tracking cookie
+        $this->token = $_COOKIE[self::TRACKING_COOKIE] ?? null;
+        $this->debugLog('Checking for imprint_uid cookie...');
         $this->debugLog('  Cookie present: ' . ($this->token ? 'YES' : 'NO'));
         
         if ($this->token) {
@@ -62,6 +67,10 @@ class AuthCheck {
         }
         
         $this->session = $this->token ? $this->jwe->verifyToken($this->token) : false;
+
+        // Login state lives in the site's own cookie
+        $siteToken = $_COOKIE[self::SESSION_COOKIE] ?? null;
+        $this->siteSession = $siteToken ? $this->jwe->verifyToken($siteToken) : false;
         
         if ($this->session) {
             $this->debugLog('✓ Token verified successfully');
@@ -76,12 +85,13 @@ class AuthCheck {
         
         if ($this->hasValidToken) {
             $this->userUID = $this->session['UID'];
-            $this->status = $this->session['status'] ?? 'logout';
+            $this->status = ($this->siteSession && !empty($this->siteSession['status']))
+                ? $this->siteSession['status'] : 'logout';
             
             $this->debugLog('✓ Valid token found');
             $this->debugLog('  UID: ' . $this->userUID);
             $this->debugLog('  Status: ' . $this->status);
-            $this->debugLog('  Username: ' . ($this->session['username'] ?? 'N/A'));
+            $this->debugLog('  Username: ' . ($this->siteSession['username'] ?? 'N/A'));
             
             // Auto-redirect if configured
             if ($config['auto_redirect'] && $this->status === 'pass') {
@@ -128,7 +138,7 @@ class AuthCheck {
     }
     
     public function isLoggedIn() {
-        return $this->hasValidToken && $this->status === 'pass';
+        return $this->status === 'pass';
     }
     
     public function hasToken() {
@@ -144,11 +154,11 @@ class AuthCheck {
     }
     
     public function getUsername() {
-        return $this->session['username'] ?? null;
+        return $this->siteSession['username'] ?? null;
     }
     
     public function getSession() {
-        return $this->session;
+        return $this->siteSession;
     }
     
     public function needsFingerprinting($fingerprint_module_path = null) {
@@ -189,31 +199,17 @@ class AuthCheck {
         $this->debugLog('requireLogin() - User is logged in');
     }
     
-    public function createLoginToken($username, $uid = null, $expiry = 604800) {
+    public function createLoginToken($username, $expiry = 604800) {
         $this->debugLog('createLoginToken() - Username: ' . $username);
         
-        if (empty($uid)) {
-            if ($this->hasValidToken && !empty($this->userUID)) {
-                $uid = $this->userUID;
-            } else {
-                if (!function_exists('uuidv7')) {
-                    require_once $_SERVER['DOCUMENT_ROOT'] . '/modules/uuid.php';
-                }
-                $uid = uuidv7();
-            }
-        }
-        $this->debugLog('  Using UID: ' . $uid);
-        
         $token = $this->jwe->createToken([
-            'UID' => $uid,
             'username' => $username,
-            'status' => 'pass',
-            'action' => []
+            'status' => 'pass'
         ], $expiry);
         
         if ($token) {
             $this->debugLog('✓ Token created');
-            setcookie('sess_jwe', $token, [
+            setcookie(self::SESSION_COOKIE, $token, [
                 'expires' => time() + $expiry,
                 'path' => '/',
                 'secure' => true,
@@ -222,10 +218,7 @@ class AuthCheck {
             ]);
             $this->debugLog('✓ Cookie set');
             
-            $this->token = $token;
-            $this->session = $this->jwe->verifyToken($token);
-            $this->hasValidToken = true;
-            $this->userUID = $uid;
+            $this->siteSession = $this->jwe->verifyToken($token);
             $this->status = 'pass';
             
             return true;
@@ -237,7 +230,8 @@ class AuthCheck {
     
     public function logout() {
         $this->debugLog('logout() called');
-        setcookie('sess_jwe', '', [
+        // Only the login cookie is cleared - the tracking cookie is not a session
+        setcookie(self::SESSION_COOKIE, '', [
             'expires' => time() - 3600,
             'path' => '/',
             'secure' => true,
@@ -245,11 +239,8 @@ class AuthCheck {
             'samesite' => 'Lax',
         ]);
         
-        $this->token = null;
-        $this->session = false;
-        $this->hasValidToken = false;
-        $this->userUID = null;
-        $this->status = null;
+        $this->siteSession = false;
+        $this->status = 'logout';
     }
 }
 

@@ -40,26 +40,9 @@ executeActions($ctx);
 require_once '../includes/config.php';
 require_once '../includes/functions.php';
 
-// Handle logout - change status to 'logout' instead of deleting cookie
+// Handle logout - clears the site's login cookie, tracking stays
 if (isset($_GET['logout'])) {
-    // Update token status to 'logout' but keep UID
-    require_once $_SERVER['DOCUMENT_ROOT'] . '/modules/jwe_module.php';
-    $jwe = new JWEModule();
-    
-    $token = $jwe->createToken([
-        'UID' => $uid,
-        'status' => 'logout',
-        'action' => []
-    ], 3600 * 24 * 7); // 7 days
-    
-    setcookie('sess_jwe', $token, [
-        'expires' => time() + 3600 * 24 * 7,
-        'path' => '/',
-        'secure' => true,
-        'httponly' => true,
-        'samesite' => 'Lax',
-    ]);
-    
+    $auth->logout();
     header('Location: /login/');
     exit;
 }

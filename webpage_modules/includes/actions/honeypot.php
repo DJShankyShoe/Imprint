@@ -18,7 +18,7 @@ function action_honeypot(array $ctx = []): void
     $cfg = $ctx['cfg'] ?? (function_exists('action_cfg') ? action_cfg() : require __DIR__ . '/action_config.php');
 
     $ttl = (int)($cfg['HONEYPOT_TTL_SECONDS'] ?? 15);
-    $url = $cfg['HONEYPOT_URL'] ?? 'https://zebrapal.ddns.net/';
+    $url = $cfg['HONEYPOT_URL'] ?? 'https://' . preg_replace('/:\d+$/', '', $_SERVER['HTTP_HOST'] ?? 'localhost') . ':8443/';
 
     // Flag the session with an expiry time
     $_SESSION['hp_until'] = time() + $ttl;
@@ -48,7 +48,7 @@ function action_honeypot_guard(array $ctx = []): void
     }
 
     $cfg = $ctx['cfg'] ?? (function_exists('action_cfg') ? action_cfg() : require __DIR__ . '/action_config.php');
-    $url = $cfg['HONEYPOT_URL'] ?? 'https://zebrapal.ddns.net/';
+    $url = $cfg['HONEYPOT_URL'] ?? 'https://' . preg_replace('/:\d+$/', '', $_SERVER['HTTP_HOST'] ?? 'localhost') . ':8443/';
 
     // Avoid redirect loop if somehow this guard runs on the honeypot host
     $hpHost  = parse_url($url, PHP_URL_HOST);

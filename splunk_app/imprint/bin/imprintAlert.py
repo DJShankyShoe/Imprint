@@ -4,7 +4,7 @@ Imprint Alert Action - Webhook Version
 Sends Splunk alerts to the Imprint service
 
 FEATURES:
-- Configurable field name (UID, userID, sess_jwe, etc.)
+- Configurable field name (UID, userID, imprint_uid, etc.)
 - Plain or Encrypted (JWE) format
 - JWE token decrypted by the service
 

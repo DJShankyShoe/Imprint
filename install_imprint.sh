@@ -146,6 +146,7 @@ ANTHROPIC_API_KEY=$(env_get "$ENV_FILE" ANTHROPIC_API_KEY)
 ask ANTHROPIC_API_KEY    "Anthropic API key (mitigation advisor)" secret
 
 # Mitigation PoC settings (poc only)
+HONEYPOT_URL=$(env_get "$MITIGATION_ENV_FILE" HONEYPOT_URL)
 RECAPTCHA_V2_SITEKEY=$(env_get "$MITIGATION_ENV_FILE" RECAPTCHA_V2_SITEKEY)
 RECAPTCHA_V2_SECRET=$(env_get "$MITIGATION_ENV_FILE" RECAPTCHA_V2_SECRET)
 GMAIL_USER=$(env_get "$MITIGATION_ENV_FILE" GMAIL_USER)
@@ -199,6 +200,9 @@ log_info "Writing $MITIGATION_ENV_FILE..."
     echo "# Google reCAPTCHA v2 (CAPTCHA action)"
     echo "RECAPTCHA_V2_SITEKEY='$RECAPTCHA_V2_SITEKEY'"
     echo "RECAPTCHA_V2_SECRET='$RECAPTCHA_V2_SECRET'"
+    echo ""
+    echo "# HONEYPOT action - empty means the POC honeypot (same host, port 8443)"
+    echo "HONEYPOT_URL='$HONEYPOT_URL'"
     echo ""
     echo "# OTP action (SMTP accounts)"
     echo "GMAIL_USER='$GMAIL_USER'"

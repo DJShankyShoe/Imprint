@@ -64,40 +64,36 @@ if ($status !== 200 || !$uid) {
 }
 logDebug("✓ Fingerprint stored for UID: {$uid}");
 
-// ============ CREATE SESSION COOKIE ============
+// ============ CREATE TRACKING COOKIE ============
 if (file_exists($_SERVER['DOCUMENT_ROOT'] . '/modules/jwe_module.php')) {
     require_once $_SERVER['DOCUMENT_ROOT'] . '/modules/jwe_module.php';
 
     try {
         $jwe = new JWEModule();
 
-        // Check if user already has a token
-        $existingToken   = $_COOKIE['sess_jwe'] ?? null;
+        // Check if visitor already has a tracking cookie
+        $existingToken   = $_COOKIE['imprint_uid'] ?? null;
         $existingSession = $existingToken ? $jwe->verifyToken($existingToken) : false;
 
         if ($existingSession && !empty($existingSession['UID'])) {
-            // User already has valid session - update UID if needed
+            // Visitor already tracked - update UID if needed
             $token = ($existingSession['UID'] !== $uid)
                 ? $jwe->updateClaim($existingToken, 'UID', $uid)
                 : $existingToken;
         } else {
-            // Create new token with default logout status
-            $token = $jwe->createToken([
-                'UID' => $uid,
-                'status' => 'logout',
-                'action' => []
-            ], 3600 * 24 * 7);
+            // Holds the UID only - the site's own session cookie stays separate
+            $token = $jwe->createToken(['UID' => $uid], 3600 * 24 * 7);
         }
 
         if ($token) {
-            setcookie('sess_jwe', $token, [
+            setcookie('imprint_uid', $token, [
                 'expires'  => time() + 3600 * 24 * 7,
                 'path'     => '/',
                 'secure'   => true,
                 'httponly' => true,
                 'samesite' => 'Lax',
             ]);
-            logDebug("✓ Cookie set: sess_jwe");
+            logDebug("✓ Cookie set: imprint_uid");
         } else {
             logDebug("ERROR: Token creation failed");
         }
