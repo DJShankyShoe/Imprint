@@ -16,7 +16,7 @@ $username = $auth->getUsername();
 $uid = $auth->getUID();
 
 // ===== ALERT CHECK =====
-// Pass UID to check.py for analysis
+// Get actions from the Imprint service
 require_once $_SERVER['DOCUMENT_ROOT'] . '/modules/insert_actions.php';
 $output = updateTokenActions();
 

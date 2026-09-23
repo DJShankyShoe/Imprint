@@ -14,7 +14,7 @@ $uid = $auth->getUID();
 error_reporting(0);
 
 // Pass UID to check.py for analysis
-exec("python3 /opt/honeyprint/check.py " . escapeshellarg($uid) . " 2>&1", $output, $return_var);
+exec("python3 /opt/imprint/check.py " . escapeshellarg($uid) . " 2>&1", $output, $return_var);
 
 // Log the output to browser console (for debugging)
 if (!empty($output)) {

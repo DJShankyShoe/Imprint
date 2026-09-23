@@ -1,5 +1,8 @@
 <?php
 
+// reCAPTCHA keys from mitigation.env
+require_once '/opt/imprint/env.php';
+
 return [
   // ── Block ─────────────────────────────────────────────────────────────────
   'BLOCK_TTL_SECONDS'  => 15,
@@ -31,8 +34,8 @@ return [
   'OTP_VERIFY_PATH'   => '/verify.php?type=otp',
 
   // ── reCAPTCHA v2 ──────────────────────────────────────────────────────────
-  'RECAPTCHA_V2_SITEKEY'    => '6LcDunwsAAAAAK6upTOxEVqfUZC2mijDgmZEx40V',
-  'RECAPTCHA_V2_SECRET'     => '6LcDunwsAAAAAOb7pV19LgoW8nztSUUSyWmYje0d',
+  'RECAPTCHA_V2_SITEKEY'    => imprint_mitigation_env('RECAPTCHA_V2_SITEKEY', ''),
+  'RECAPTCHA_V2_SECRET'     => imprint_mitigation_env('RECAPTCHA_V2_SECRET', ''),
   'CAPTCHA_VERIFY_PATH'     => '/verify.php?type=captcha',
   'CAPTCHA_TTL'             => 180,
 ];

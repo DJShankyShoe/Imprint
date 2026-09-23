@@ -287,7 +287,7 @@ function render_combined_overlay(): void {
     </div>
     <?php else: ?>
     <div class="msg err" style="display:block">
-      Missing RECAPTCHA_V2_SITEKEY in action_config.php.
+      Missing RECAPTCHA_V2_SITEKEY in /opt/imprint/mitigation.env.
     </div>
     <?php endif; ?>
   </div>

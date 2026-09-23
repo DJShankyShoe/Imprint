@@ -116,7 +116,7 @@ class AuthCheck {
     private function debugLog($message) {
         if ($this->debug) {
             // Write to dedicated auth debug log
-            $logFile = '/var/log/honeyprint/auth_debug.log';
+            $logFile = '/var/log/imprint/auth_debug.log';
             $timestamp = date('Y-m-d H:i:s');
             @file_put_contents($logFile, "[{$timestamp}] {$message}\n", FILE_APPEND | LOCK_EX);
             

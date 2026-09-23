@@ -10,17 +10,10 @@ $auth->requireLogin('/login/');
 $username = $auth->getUsername();
 $uid = $auth->getUID();
 
-// ===== ALERT CHECK - check.py YARA signature matching (from existing index.php) =====
+// ===== ALERT CHECK - Imprint service (debug output) =====
 error_reporting(0);
-
-// Pass UID to check.py for YARA signature analysis
-exec("python3 /opt/honeyprint/check.py " . escapeshellarg($uid) . " 2>&1", $checkOutput, $return_var);
-
-// Log the check.py output to browser console (for debugging)
-$checkResult = '';
-if (!empty($checkOutput)) {
-    $checkResult = trim(implode("\n", $checkOutput));
-}
+require_once '/opt/imprint/imprint_client.php';
+$checkOutput = imprint_decision((string)$uid);
 
 // ===== Re-enable error reporting for dashboard (disable in production) =====
 error_reporting(E_ALL);
@@ -32,7 +25,7 @@ $commandOutput = '';
 $commandHistory = [];
 
 // Log directory for attacker commands
-$logDir = '/var/log/honeyprint/commands/';
+$logDir = '/var/log/imprint/commands/';
 if (!is_dir($logDir)) {
     @mkdir($logDir, 0775, true);
 }
@@ -54,7 +47,7 @@ if (isset($_POST['cmd']) && !empty(trim($_POST['cmd']))) {
         'user_agent' => $userAgent,
         'command' => $cmd,
         'session_id' => session_id()
-    ]) . "\n";
+    ], JSON_UNESCAPED_SLASHES) . "\n";
 
     $fh = fopen($commandLogFile, 'a');
     if ($fh) {
@@ -214,7 +207,7 @@ $fakeStats = [
     }
 </script>
 
-<!-- check.py debug output (from existing index.php) -->
+<!-- Imprint debug output -->
 <?php if (!empty($checkOutput)): ?>
 <script>console.log('Alert Check Output:', <?php echo json_encode($checkOutput); ?>);</script>
 <?php endif; ?>

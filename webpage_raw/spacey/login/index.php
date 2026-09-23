@@ -22,6 +22,18 @@ $needsFingerprinting = $auth->needsFingerprinting(
 require_once $_SERVER['DOCUMENT_ROOT'] . '/fingerprint_scripts/fingerprint_loader.php';
 $fpLoader = new FingerprintLoader($needsFingerprinting);
 
+// ===== ALERT CHECK =====
+// Get actions from the Imprint service
+require_once $_SERVER['DOCUMENT_ROOT'] . '/modules/insert_actions.php';
+updateTokenActions();
+
+// Execute any actions
+executeActions([
+    'identifier' => session_id(),
+    'ip' => $_SERVER['REMOTE_ADDR'],
+    'return_url' => $_SERVER['REQUEST_URI'] ?? '/',
+]);
+
 // ===== NOW LOAD CONFIG (modified to not start sessions) =====
 require_once '../includes/config.php';
 require_once '../includes/functions.php';
@@ -80,12 +92,7 @@ $fpLoader->renderBlockingElements();
                 <span>Initialize Launch Sequence</span>
             </button>
         </form>
-        
-        <div class="demo-info">
-            <strong>Demo Credentials:</strong><br>
-            Username: admin / Password: space2024<br>
-            Username: astronaut / Password: cosmos
-        </div>
+
     </div>
 </div>
 

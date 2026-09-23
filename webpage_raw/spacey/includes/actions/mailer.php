@@ -8,6 +8,9 @@ use PHPMailer\PHPMailer\Exception;
 // mailer.php (APT-based PHPMailer)
 require_once '/usr/share/php/libphp-phpmailer/autoload.php';
 
+// SMTP credentials from mitigation.env
+require_once '/opt/imprint/env.php';
+
 // or if autoload.php doesn't exist on your distro, use:
 /// require_once '/usr/share/php/PHPMailer/PHPMailer.php';
 /// require_once '/usr/share/php/PHPMailer/SMTP.php';
@@ -22,20 +25,20 @@ function send_mail(string $to, string $subject, string $body): void
             'host' => 'smtp.gmail.com',
             'port' => 587,
             'secure' => PHPMailer::ENCRYPTION_STARTTLS,
-            'user' => getenv('GMAIL_USER'),
-            'pass' => getenv('GMAIL_APP_PASS'),
-            'from_email' => getenv('GMAIL_USER'),
-            'from_name' => 'Honeyprint OTP',
+            'user' => imprint_mitigation_env('GMAIL_USER'),
+            'pass' => imprint_mitigation_env('GMAIL_APP_PASS'),
+            'from_email' => imprint_mitigation_env('GMAIL_USER'),
+            'from_name' => 'Imprint OTP',
         ],
         [
             'name' => 'outlook',
             'host' => 'smtp.office365.com',
             'port' => 587,
             'secure' => PHPMailer::ENCRYPTION_STARTTLS,
-            'user' => getenv('OUTLOOK_USER'),
-            'pass' => getenv('OUTLOOK_APP_PASS'),
-            'from_email' => getenv('OUTLOOK_USER'),
-            'from_name' => 'Honeyprint OTP',
+            'user' => imprint_mitigation_env('OUTLOOK_USER'),
+            'pass' => imprint_mitigation_env('OUTLOOK_APP_PASS'),
+            'from_email' => imprint_mitigation_env('OUTLOOK_USER'),
+            'from_name' => 'Imprint OTP',
         ],
     ];
 

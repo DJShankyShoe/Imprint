@@ -62,7 +62,7 @@ $fpLoader->renderBlockingElements();
             $time = '[' . date('d:M:Y:H:i:s', time()) . ' +0000] ';
             $log = $time . $uid . " User " . $user . " attempted a " . $status . " login\n";
             
-            $fh = fopen('/var/log/honeyprint/status.txt', 'a');
+            $fh = fopen('/var/log/imprint/status.txt', 'a');
             fwrite($fh, $log);
             fclose($fh);
         }
