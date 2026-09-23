@@ -60,6 +60,7 @@ The alert name becomes the attack type stored for the fingerprint (e.g. `sqli`, 
 | **Observation** | One recorded attack on a fingerprint (attack type, time, IP, country, browser...). A fingerprint collects observations over time |
 | **UID** | Random visitor ID assigned after the first fingerprint, kept in the `imprint_uid` cookie |
 | **`imprint_uid` cookie** | Imprint's own encrypted cookie, holding the visitor's UID and nothing else. It is **separate from your application's session cookie**, which Imprint never reads or writes. Your detection tools record it, so an alert can be traced back to the visitor |
+| **`site_session` cookie** (POC) | The example sites' own login cookie, with its own key pair (`/opt/keys/site_*.pem`). It stands in for whatever session mechanism your application already uses - Imprint neither reads nor replaces it |
 | **Slot** | A **one-time upload link** for one visitor's fingerprint. When a page that fingerprints visitors is rendered, the service creates a random link (`/endpoints/fp_<random id>.php?s=<secret>`) that accepts exactly one upload within 30 seconds, then stops existing. There is no fixed upload address to find, flood or replay |
 | **Slot secret** | Second random value in the link (`?s=`), proving the upload comes from the page your server rendered. The service only stores its hash |
 | **Decision** | The actions stored for a visitor's fingerprint (e.g. `["CAPTCHA"]`), which a required page looks up and enforces |
@@ -298,6 +299,8 @@ sudo chown root:www-data /opt/imprint/*.env && sudo chmod 640 /opt/imprint/*.env
 After fingerprinting, the website gives the visitor an encrypted `imprint_uid` cookie holding their UID. The website creates and reads it; the service decrypts it when an alert comes in, to know *which* visitor attacked. Both need the same key pair, which the service generates on first start.
 
 This cookie is Imprint's own and carries the UID only. Your application keeps its own session cookie (`PHPSESSID`, `JSESSIONID`, whatever you use) and Imprint never reads, writes or replaces it.
+
+The two are protected by different keys. The POC shows this: `imprint_uid` uses the session key pair shared with the service, while the site's own login cookie (`site_session`) uses `/opt/keys/site_*.pem`, generated on the web server and never given to Imprint - so the service cannot read the site's login state.
 
 ```bash
 # On the Imprint server: copy the keys out of the container

@@ -32,6 +32,15 @@ done
 install -o root -g www-data -m 640 /run/imprint/session/server_private.pem /opt/keys/server_private.pem
 install -o root -g www-data -m 644 /run/imprint/session/server_public.pem /opt/keys/server_public.pem
 
+# The site's own login key - never shared with the Imprint service
+if [ ! -f /opt/keys/site_private.pem ]; then
+    openssl genrsa -out /opt/keys/site_private.pem 2048 2>/dev/null
+    openssl rsa -in /opt/keys/site_private.pem -pubout -out /opt/keys/site_public.pem 2>/dev/null
+fi
+chown root:www-data /opt/keys/site_private.pem /opt/keys/site_public.pem
+chmod 640 /opt/keys/site_private.pem
+chmod 644 /opt/keys/site_public.pem
+
 # Self-signed certificate
 if [ ! -f /etc/ssl/private/honeypot.key ]; then
     openssl req -x509 -nodes -days 365 -newkey rsa:2048 \

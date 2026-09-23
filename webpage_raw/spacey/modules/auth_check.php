@@ -14,7 +14,12 @@ class AuthCheck {
     const TRACKING_COOKIE = 'imprint_uid';
     const SESSION_COOKIE  = 'site_session';
 
+    // Separate key pairs: Imprint's key never protects the site's own session
+    const SITE_PUBLIC_KEY  = '/opt/keys/site_public.pem';
+    const SITE_PRIVATE_KEY = '/opt/keys/site_private.pem';
+
     private $jwe;
+    private $siteJwe;
     private $token;
     private $session;
     private $siteSession;
@@ -54,7 +59,11 @@ class AuthCheck {
         }
         
         $this->jwe = new JWEModule();
-        $this->debugLog('✓ JWE module initialized');
+        $this->siteJwe = new JWEModule([
+            'publicKeyPath'  => self::SITE_PUBLIC_KEY,
+            'privateKeyPath' => self::SITE_PRIVATE_KEY,
+        ]);
+        $this->debugLog('✓ JWE modules initialized (tracking + site session)');
         
         // Check for the tracking cookie
         $this->token = $_COOKIE[self::TRACKING_COOKIE] ?? null;
@@ -70,7 +79,7 @@ class AuthCheck {
 
         // Login state lives in the site's own cookie
         $siteToken = $_COOKIE[self::SESSION_COOKIE] ?? null;
-        $this->siteSession = $siteToken ? $this->jwe->verifyToken($siteToken) : false;
+        $this->siteSession = $siteToken ? $this->siteJwe->verifyToken($siteToken) : false;
         
         if ($this->session) {
             $this->debugLog('✓ Token verified successfully');
@@ -202,7 +211,7 @@ class AuthCheck {
     public function createLoginToken($username, $expiry = 604800) {
         $this->debugLog('createLoginToken() - Username: ' . $username);
         
-        $token = $this->jwe->createToken([
+        $token = $this->siteJwe->createToken([
             'username' => $username,
             'status' => 'pass'
         ], $expiry);
@@ -218,7 +227,7 @@ class AuthCheck {
             ]);
             $this->debugLog('✓ Cookie set');
             
-            $this->siteSession = $this->jwe->verifyToken($token);
+            $this->siteSession = $this->siteJwe->verifyToken($token);
             $this->status = 'pass';
             
             return true;
