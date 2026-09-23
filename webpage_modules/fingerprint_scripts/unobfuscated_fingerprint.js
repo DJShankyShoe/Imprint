@@ -97,7 +97,7 @@ class CompleteFingerprintSystem {
 
   // ============ ADDITIONAL DATA (NOT HASHED) ============
   async collectAdditionalData() {
-    this.additionalData.network = await this.getIPInfo()
+    // Network info is added server-side
     this.additionalData.incognito = await this.detectIncognito()
     this.additionalData.vmDetection = await this.detectVM()
     this.additionalData.language = this.getLanguageInfo()
@@ -105,59 +105,6 @@ class CompleteFingerprintSystem {
     this.additionalData.permissions = await this.getPermissions()
     this.additionalData.battery = await this.getBatteryInfo()
     this.additionalData.cpuBenchmark = await this.runCPUBenchmark()
-  }
-
-  // ============ IP & GEOLOCATION ============
-  async getIPInfo() {
-    const maxRetries = 3;
-    const baseDelay = 1000; // 1 second
-    
-    for (let attempt = 0; attempt < maxRetries; attempt++) {
-      try {
-        // Try to fetch IP
-        const ipResponse = await fetch('https://icanhazip.com', {
-          signal: AbortSignal.timeout(5000) // 5 second timeout
-        });
-        const ip = (await ipResponse.text()).trim();
-        
-        if (!ip) {
-          throw new Error('Empty IP response');
-        }
-        
-        // Try to fetch geolocation
-        const geoResponse = await fetch(`https://api.codetabs.com/v1/proxy?quest=http://ip-api.com/json/${ip}?fields=21233405`, {
-          signal: AbortSignal.timeout(5000) // 5 second timeout
-        });
-        const geoData = await geoResponse.json();
-        
-        return geoData;
-        
-      } catch (error) {
-        debugWarn(`IP info fetch attempt ${attempt + 1}/${maxRetries} failed:`, error.message);
-        
-        // If this was the last attempt, return empty data
-        if (attempt === maxRetries - 1) {
-          debugError('All IP info fetch attempts failed, returning empty data');
-          return {
-            query: 'unknown',
-            status: 'fail',
-            country: 'unknown',
-            city: 'unknown',
-            isp: 'unknown',
-            org: 'unknown',
-            as: 'unknown',
-            proxy: false,
-            hosting: false,
-            mobile: false
-          };
-        }
-        
-        // Exponential backoff: wait before next retry
-        const delay = baseDelay * Math.pow(2, attempt);
-        debugLog(`Waiting ${delay}ms before retry...`);
-        await new Promise(resolve => setTimeout(resolve, delay));
-      }
-    }
   }
 
   // ============ INCOGNITO DETECTION ============
@@ -226,11 +173,9 @@ class CompleteFingerprintSystem {
       const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl')
       let gpu = 'Unknown'
       if (gl) {
-        gpu = gl.getParameter(gl.RENDERER) || ''
-        if (!gpu) {
-          const debugInfo = gl.getExtension('WEBGL_debug_renderer_info')
-          if (debugInfo) gpu = gl.getParameter(debugInfo.UNMASKED_RENDERER_WEBGL) || 'Unknown'
-        }
+        // Use unmasked renderer if available
+        const debugInfo = gl.getExtension('WEBGL_debug_renderer_info')
+        gpu = (debugInfo && gl.getParameter(debugInfo.UNMASKED_RENDERER_WEBGL)) || gl.getParameter(gl.RENDERER) || 'Unknown'
       }
       return { cpuCores: navigator.hardwareConcurrency, gpu }
     } catch (e) { return { error: e.message } }
@@ -758,15 +703,10 @@ class CompleteFingerprintSystem {
   getWebGlBasics() {
     const gl = this.getWebGLContext()
     if (!gl) return undefined
-    let vendorUnmasked = gl.getParameter(gl.VENDOR) || ''
-    let rendererUnmasked = gl.getParameter(gl.RENDERER) || ''
-    if (!vendorUnmasked || !rendererUnmasked) {
-      const dbg = gl.getExtension('WEBGL_debug_renderer_info')
-      if (dbg) {
-        if (!vendorUnmasked) vendorUnmasked = gl.getParameter(dbg.UNMASKED_VENDOR_WEBGL) || ''
-        if (!rendererUnmasked) rendererUnmasked = gl.getParameter(dbg.UNMASKED_RENDERER_WEBGL) || ''
-      }
-    }
+    // Use unmasked vendor/renderer if available
+    const dbg = gl.getExtension('WEBGL_debug_renderer_info')
+    const vendorUnmasked = (dbg && gl.getParameter(dbg.UNMASKED_VENDOR_WEBGL)) || gl.getParameter(gl.VENDOR) || ''
+    const rendererUnmasked = (dbg && gl.getParameter(dbg.UNMASKED_RENDERER_WEBGL)) || gl.getParameter(gl.RENDERER) || ''
     return {
       version: gl.getParameter(gl.VERSION),
       vendor: gl.getParameter(gl.VENDOR),
@@ -784,8 +724,26 @@ class CompleteFingerprintSystem {
     return {
       contextAttributes: Object.keys(attrs).sort().map(k => `${k}=${attrs[k]}`),
       parameters: this.getWebGlParameters(gl),
-      extensions: (gl.getSupportedExtensions() || []).sort()
+      extensions: (gl.getSupportedExtensions() || []).sort(),
+      shaderPrecisionFormats: this.getShaderPrecisionFormats(gl)
     }
+  }
+
+  getShaderPrecisionFormats(gl) {
+    const shaders = ['VERTEX_SHADER', 'FRAGMENT_SHADER']
+    const precisions = ['LOW_FLOAT', 'MEDIUM_FLOAT', 'HIGH_FLOAT', 'LOW_INT', 'MEDIUM_INT', 'HIGH_INT']
+    const results = []
+    for (const shader of shaders) {
+      for (const precision of precisions) {
+        try {
+          const format = gl.getShaderPrecisionFormat(gl[shader], gl[precision])
+          if (format) results.push(`${shader}.${precision}=${format.rangeMin},${format.rangeMax},${format.precision}`)
+        } catch (e) {
+          // Skip formats that cause errors
+        }
+      }
+    }
+    return results
   }
 
   getWebGLContext() {
@@ -819,15 +777,10 @@ class CompleteFingerprintSystem {
   getWebGl2Basics() {
     const gl2 = this.getWebGL2Context()
     if (!gl2) return { supported: false }
-    let vendorUnmasked = gl2.getParameter(gl2.VENDOR) || ''
-    let rendererUnmasked = gl2.getParameter(gl2.RENDERER) || ''
-    if (!vendorUnmasked || !rendererUnmasked) {
-      const dbg = gl2.getExtension('WEBGL_debug_renderer_info')
-      if (dbg) {
-        if (!vendorUnmasked) vendorUnmasked = gl2.getParameter(dbg.UNMASKED_VENDOR_WEBGL) || ''
-        if (!rendererUnmasked) rendererUnmasked = gl2.getParameter(dbg.UNMASKED_RENDERER_WEBGL) || ''
-      }
-    }
+    // Use unmasked vendor/renderer if available
+    const dbg = gl2.getExtension('WEBGL_debug_renderer_info')
+    const vendorUnmasked = (dbg && gl2.getParameter(dbg.UNMASKED_VENDOR_WEBGL)) || gl2.getParameter(gl2.VENDOR) || ''
+    const rendererUnmasked = (dbg && gl2.getParameter(dbg.UNMASKED_RENDERER_WEBGL)) || gl2.getParameter(gl2.RENDERER) || ''
     return {
       supported: true,
       version: gl2.getParameter(gl2.VERSION),
@@ -847,7 +800,8 @@ class CompleteFingerprintSystem {
       supported: true,
       contextAttributes: Object.keys(attrs).sort().map(k => `${k}=${attrs[k]}`),
       parameters: this.getWebGl2Parameters(gl2),
-      extensions: (gl2.getSupportedExtensions() || []).sort()
+      extensions: (gl2.getSupportedExtensions() || []).sort(),
+      shaderPrecisionFormats: this.getShaderPrecisionFormats(gl2)
     }
   }
 
@@ -1154,19 +1108,18 @@ void (async () => {
   }
   debugLog('  No valid session - will collect fingerprint');
 
-  // Check 3: Already sent this session
-  const alreadySent = sessionStorage.getItem("fp_sent");
-  debugLog('Checking if fingerprint already sent this session...');
-  debugLog('  sessionStorage.fp_sent =', alreadySent);
-  if (alreadySent) {
-    debugLog('⚠️  BLOCKED: Fingerprint already sent in this session');
-    debugLog('  This might cause the blocking page to persist!');
-    debugLog('  To retry: sessionStorage.removeItem("fp_sent")');
+  // Check 3: Already sent recently
+  const sentAt = sessionStorage.getItem("fp_sent");
+  const TTL_MS = 10000; // 10 seconds
+  debugLog('Checking if fingerprint submission recently started...');
+  debugLog('  sessionStorage.fp_sent =', sentAt);
+  if (sentAt && (Date.now() - Number(sentAt) < TTL_MS)) {
+    debugLog('⚠️  BLOCKED: fingerprint submission recently started');
     return;
   }
-  
-  sessionStorage.setItem("fp_sent", "1");
-  debugLog('✓ Set sessionStorage.fp_sent = "1"');
+
+  sessionStorage.setItem("fp_sent", Date.now().toString());
+  debugLog('✓ Set sessionStorage.fp_sent =', sessionStorage.getItem("fp_sent"));
 
   // Generate UUID
   const uuid = (crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random()}`);
@@ -1241,6 +1194,7 @@ void (async () => {
       debugLog('🎉 Dispatching fingerprintSuccess event...');
       window.dispatchEvent(new CustomEvent('fingerprintSuccess'));
       debugLog('✓ Event dispatched');
+      sessionStorage.removeItem("fp_sent");
       
       debugLog('');
       debugLog('🔄 Reloading page to get session token...');
@@ -1263,8 +1217,9 @@ void (async () => {
       debugLog('');
       debugLog('🎯 Dispatching fingerprintError event...');
       window.dispatchEvent(new CustomEvent('fingerprintError', { 
-        detail: `HTTP ${fpRes.status}: ${fpRes.statusText}` 
+        detail: `HTTP ${fpRes.status}: ${fpRes.statusText}`
       }));
+      sessionStorage.removeItem("fp_sent");
       debugLog('⚠️  PAGE MAY REMAIN BLOCKED DUE TO ERROR');
     }
   } catch (e) {
@@ -1277,8 +1232,9 @@ void (async () => {
     debugLog('');
     debugLog('🎯 Dispatching fingerprintError event...');
     window.dispatchEvent(new CustomEvent('fingerprintError', { 
-      detail: e.message || 'Network error' 
+      detail: e.message || 'Network error'
     }));
+    sessionStorage.removeItem("fp_sent");
     debugLog('⚠️  PAGE MAY REMAIN BLOCKED DUE TO ERROR');
     debugError('Fingerprint error:', e);
   }
