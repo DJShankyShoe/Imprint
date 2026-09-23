@@ -1,11 +1,11 @@
 <form class="form-horizontal form-complex">
     <div class="control-group">
-        <label class="control-label" for="action_honeyprintAlert_param_field_name">Field Name</label>
+        <label class="control-label" for="action_imprintAlert_param_field_name">Field Name</label>
         <div class="controls">
             <input type="text" 
-                   name="action.honeyprintAlert.param.field_name" 
-                   id="action_honeyprintAlert_param_field_name"
-                   value="$action.honeyprintAlert.param.field_name$"
+                   name="action.imprintAlert.param.field_name" 
+                   id="action_imprintAlert_param_field_name"
+                   value="$action.imprintAlert.param.field_name$"
                    placeholder="UID"/>
             <span class="help-block">
                 Name of the field to extract from search results (e.g., UID, userID, username, email). Case-insensitive.
@@ -14,14 +14,14 @@
     </div>
     
     <div class="control-group">
-        <label class="control-label" for="action_honeyprintAlert_param_data_format">Data Format</label>
+        <label class="control-label" for="action_imprintAlert_param_data_format">Data Format</label>
         <div class="controls">
-            <select name="action.honeyprintAlert.param.data_format" 
-                    id="action_honeyprintAlert_param_data_format">
-                <option value="plain" $action.honeyprintAlert.param.data_format|selected("plain")$>
+            <select name="action.imprintAlert.param.data_format" 
+                    id="action_imprintAlert_param_data_format">
+                <option value="plain" $action.imprintAlert.param.data_format|selected("plain")$>
                     Plain (Unencrypted UID)
                 </option>
-                <option value="encrypted" $action.honeyprintAlert.param.data_format|selected("encrypted")$>
+                <option value="encrypted" $action.imprintAlert.param.data_format|selected("encrypted")$>
                     Encrypted (JWE Token)
                 </option>
             </select>

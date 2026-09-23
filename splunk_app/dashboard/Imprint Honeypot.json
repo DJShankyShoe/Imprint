@@ -1,0 +1,297 @@
+{
+    "dataSources": {
+        "ds_honeypot_all_commands": {
+            "name": "Honeypot All Commands",
+            "options": {
+                "extend": "ds_honeypot_base",
+                "query": "| table Timestamp, ip, username, command, user_agent, uid, session_id | rename ip AS \"IP\", username AS \"Username\", command AS \"Command\", user_agent AS \"User Agent\", uid AS \"UID\", session_id AS \"Session ID\""
+            },
+            "type": "ds.chain"
+        },
+        "ds_honeypot_base": {
+            "name": "Honeypot Base Search",
+            "options": {
+                "query": "index=\"imprint\" sourcetype=\"imprint:commands\"\n| rex field=_raw max_match=0 \"(?<json_event>\\{[^}]+\\})\"\n| mvexpand json_event\n| rex field=json_event \"\\\"timestamp\\\":\\\"(?<timestamp>[^\\\"]+)\\\"\"\n| rex field=json_event \"\\\"uid\\\":\\\"(?<uid>[^\\\"]+)\\\"\"\n| rex field=json_event \"\\\"username\\\":\\\"(?<username>[^\\\"]+)\\\"\"\n| rex field=json_event \"\\\"ip\\\":\\\"(?<ip>[^\\\"]+)\\\"\"\n| rex field=json_event \"\\\"user_agent\\\":\\\"(?<user_agent>.+?)\\\",\\\"command\\\"\"\n| rex field=json_event \"\\\"command\\\":\\\"(?<command>.+?)\\\",\\\"session_id\\\"\"\n| rex field=json_event \"\\\"session_id\\\":\\\"(?<session_id>[^\\\"]*)\\\"\"\n| where isnotnull(command)\n| eval _sv=\"$search_value$\"\n| eval _st=\"$search_type$\"\n| eval _match=case(_st==\"show_all\", 1, _st==\"uid\", if(uid=_sv,1,0), 1=1, 0)\n| where _match=1\n| eval Timestamp=timestamp"
+            },
+            "type": "ds.search"
+        },
+        "ds_honeypot_command_timeline": {
+            "name": "Honeypot Command Timeline",
+            "options": {
+                "extend": "ds_honeypot_base",
+                "query": "| timechart span=1h count"
+            },
+            "type": "ds.chain"
+        },
+        "ds_honeypot_top_commands": {
+            "name": "Honeypot Top Commands",
+            "options": {
+                "extend": "ds_honeypot_base",
+                "query": "| stats count by command | sort - count | head 15 | rename command AS \"Command\", count AS \"Count\""
+            },
+            "type": "ds.chain"
+        },
+        "ds_honeypot_top_ips": {
+            "name": "Honeypot Top IPs",
+            "options": {
+                "extend": "ds_honeypot_base",
+                "query": "| stats count by ip, username | sort - count | head 15 | rename ip AS \"IP\", username AS \"Username\", count AS \"Commands\""
+            },
+            "type": "ds.chain"
+        },
+        "ds_honeypot_total_commands": {
+            "name": "Honeypot Total Commands",
+            "options": {
+                "extend": "ds_honeypot_base",
+                "query": "| stats count"
+            },
+            "type": "ds.chain"
+        },
+        "ds_honeypot_unique_ips": {
+            "name": "Honeypot Unique IPs",
+            "options": {
+                "extend": "ds_honeypot_base",
+                "query": "| stats dc(ip)"
+            },
+            "type": "ds.chain"
+        },
+        "ds_honeypot_unique_users": {
+            "name": "Honeypot Unique Users",
+            "options": {
+                "extend": "ds_honeypot_base",
+                "query": "| stats dc(username)"
+            },
+            "type": "ds.chain"
+        }
+    },
+    "defaults": {
+        "dataSources": {
+            "ds.search": {
+                "options": {
+                    "queryParameters": {
+                        "earliest": "$global_time.earliest$",
+                        "latest": "$global_time.latest$"
+                    }
+                }
+            },
+            "ds.spl2": {
+                "options": {
+                    "queryParameters": {
+                        "earliest": "$global_time.earliest$",
+                        "latest": "$global_time.latest$"
+                    }
+                }
+            }
+        },
+        "visualizations": {
+            "global": {
+                "showProgressBar": true
+            }
+        }
+    },
+    "description": "Commands run by attackers in the ZebraPal honeypot. Search by UID to follow one attacker.",
+    "inputs": {
+        "input_global_trp": {
+            "options": {
+                "defaultValue": "0,now",
+                "token": "global_time"
+            },
+            "title": "Global Time Range",
+            "type": "input.timerange"
+        },
+        "input_search_type": {
+            "options": {
+                "defaultValue": "show_all",
+                "items": [
+                    {
+                        "label": "Show All",
+                        "value": "show_all"
+                    },
+                    {
+                        "label": "UID",
+                        "value": "uid"
+                    }
+                ],
+                "token": "search_type"
+            },
+            "title": "Search By",
+            "type": "input.dropdown"
+        },
+        "input_search_value": {
+            "options": {
+                "defaultValue": "*",
+                "token": "search_value"
+            },
+            "title": "Search Value",
+            "type": "input.text"
+        }
+    },
+    "layout": {
+        "globalInputs": [
+            "input_global_trp",
+            "input_search_type",
+            "input_search_value"
+        ],
+        "options": {
+            "display": "auto",
+            "height": 1200,
+            "submitButton": true,
+            "submitOnDashboardLoad": true,
+            "width": 1440
+        },
+        "structure": [
+            {
+                "item": "viz_honeypot_total_commands",
+                "position": {
+                    "h": 120,
+                    "w": 450,
+                    "x": 20,
+                    "y": 20
+                },
+                "type": "block"
+            },
+            {
+                "item": "viz_honeypot_unique_ips",
+                "position": {
+                    "h": 120,
+                    "w": 450,
+                    "x": 500,
+                    "y": 20
+                },
+                "type": "block"
+            },
+            {
+                "item": "viz_honeypot_unique_users",
+                "position": {
+                    "h": 120,
+                    "w": 450,
+                    "x": 970,
+                    "y": 20
+                },
+                "type": "block"
+            },
+            {
+                "item": "viz_honeypot_command_timeline",
+                "position": {
+                    "h": 200,
+                    "w": 1410,
+                    "x": 20,
+                    "y": 160
+                },
+                "type": "block"
+            },
+            {
+                "item": "viz_honeypot_top_commands",
+                "position": {
+                    "h": 280,
+                    "w": 740,
+                    "x": 20,
+                    "y": 380
+                },
+                "type": "block"
+            },
+            {
+                "item": "viz_honeypot_top_ips",
+                "position": {
+                    "h": 280,
+                    "w": 660,
+                    "x": 770,
+                    "y": 380
+                },
+                "type": "block"
+            },
+            {
+                "item": "viz_honeypot_all_commands",
+                "position": {
+                    "h": 500,
+                    "w": 1410,
+                    "x": 20,
+                    "y": 680
+                },
+                "type": "block"
+            }
+        ],
+        "type": "absolute"
+    },
+    "title": "Honeypot (POC)",
+    "visualizations": {
+        "viz_honeypot_all_commands": {
+            "dataSources": {
+                "primary": "ds_honeypot_all_commands"
+            },
+            "options": {
+                "count": 10000,
+                "drilldown": "none",
+                "showRowNumbers": true
+            },
+            "title": "All Commands",
+            "type": "splunk.table"
+        },
+        "viz_honeypot_command_timeline": {
+            "dataSources": {
+                "primary": "ds_honeypot_command_timeline"
+            },
+            "options": {},
+            "title": "Command Activity Timeline",
+            "type": "splunk.line"
+        },
+        "viz_honeypot_top_commands": {
+            "dataSources": {
+                "primary": "ds_honeypot_top_commands"
+            },
+            "options": {
+                "count": 15,
+                "drilldown": "none"
+            },
+            "title": "Top Commands",
+            "type": "splunk.table"
+        },
+        "viz_honeypot_top_ips": {
+            "dataSources": {
+                "primary": "ds_honeypot_top_ips"
+            },
+            "options": {
+                "count": 15,
+                "drilldown": "none"
+            },
+            "title": "Top Attack IPs",
+            "type": "splunk.table"
+        },
+        "viz_honeypot_total_commands": {
+            "dataSources": {
+                "primary": "ds_honeypot_total_commands"
+            },
+            "options": {
+                "backgroundColor": "transparent",
+                "majorColor": "#ffffff",
+                "majorFontSize": 48
+            },
+            "title": "Total Commands",
+            "type": "splunk.singlevalue"
+        },
+        "viz_honeypot_unique_ips": {
+            "dataSources": {
+                "primary": "ds_honeypot_unique_ips"
+            },
+            "options": {
+                "backgroundColor": "transparent",
+                "majorColor": "#f8c555",
+                "majorFontSize": 48
+            },
+            "title": "Unique IPs",
+            "type": "splunk.singlevalue"
+        },
+        "viz_honeypot_unique_users": {
+            "dataSources": {
+                "primary": "ds_honeypot_unique_users"
+            },
+            "options": {
+                "backgroundColor": "transparent",
+                "majorColor": "#a9d4ff",
+                "majorFontSize": 48
+            },
+            "title": "Unique Usernames",
+            "type": "splunk.singlevalue"
+        }
+    }
+}

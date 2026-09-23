@@ -2,6 +2,6 @@
 access = read : [ * ], write : [ admin ]
 export = system
 
-[alert_actions/honeyprintAlert]
+[alert_actions/imprintAlert]
 export = system
 owner = nobody

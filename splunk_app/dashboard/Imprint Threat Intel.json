@@ -1,0 +1,282 @@
+{
+    "dataSources": {
+        "ds_attack_type_count": {
+            "name": "Attack Type Count",
+            "options": {
+                "extend": "ds_base",
+                "query": "| stats count BY obs_attackType | rename obs_attackType AS \"Attack Type\", count AS \"Count\""
+            },
+            "type": "ds.chain"
+        },
+        "ds_base": {
+            "name": "Base Search",
+            "options": {
+                "query": "index=\"imprint_intel\" sourcetype=\"imprint:observations\"\n| dedup fingerprint_id obs_index\n| rename fingerprint_id AS mongo_id, timestamp AS obs_timestamp, ip AS obs_ip, country AS obs_country, attackType AS obs_attackType, proxy AS obs_proxy, isPrivate AS obs_isPrivate, browserName AS obs_browserName, os AS obs_os, timezone AS obs_timezone, userAgent AS obs_userAgent\n| where isnotnull(obs_ip)\n| eval _sv=\"$search_value$\"\n| eval _st=\"$search_type$\"\n| eval _match=case(_st==\"show_all\", 1, _st==\"full_hash\", if(full_hash=_sv,1,0), _st==\"tier1_hash\", if(tier1_hash=_sv,1,0), _st==\"ip\", if(obs_ip=_sv,1,0), _st==\"attack_type\", if(obs_attackType=_sv,1,0), 1=1, 0)\n| where _match=1\n| eval Timestamp=strftime(obs_timestamp/1000, \"%Y-%m-%d %H:%M:%S\")\n| fields mongo_id, full_hash, tier1_hash, obs_timestamp, obs_ip, obs_country, obs_attackType, obs_proxy, obs_isPrivate, obs_browserName, obs_os, obs_timezone, obs_userAgent, Timestamp"
+            },
+            "type": "ds.search"
+        },
+        "ds_ip_count": {
+            "name": "IP Count",
+            "options": {
+                "extend": "ds_base",
+                "query": "| stats count BY obs_ip, obs_country, obs_proxy | rename obs_ip AS \"IP\", obs_country AS \"Country\", obs_proxy AS \"Proxy\", count AS \"Observation Count\""
+            },
+            "type": "ds.chain"
+        },
+        "ds_observations_search": {
+            "name": "Observations Search",
+            "options": {
+                "extend": "ds_base",
+                "query": "| table Timestamp, obs_ip, obs_country, obs_attackType, obs_proxy, obs_isPrivate, obs_browserName, obs_os, obs_timezone, obs_userAgent, full_hash, tier1_hash | rename obs_ip AS \"IP\", obs_country AS \"Country\", obs_attackType AS \"Attack Type\", obs_proxy AS \"Proxy\", obs_isPrivate AS \"Private\", obs_browserName AS \"Browser\", obs_os AS \"OS\", obs_timezone AS \"Timezone\", obs_userAgent AS \"User Agent\", full_hash AS \"Full Hash\", tier1_hash AS \"Tier1 Hash\""
+            },
+            "type": "ds.chain"
+        },
+        "ds_private_count": {
+            "name": "Private Count",
+            "options": {
+                "extend": "ds_base",
+                "query": "| where obs_isPrivate=\"true\" | stats count"
+            },
+            "type": "ds.chain"
+        },
+        "ds_proxy_count": {
+            "name": "Proxy Count",
+            "options": {
+                "extend": "ds_base",
+                "query": "| where obs_proxy=\"true\" | stats count"
+            },
+            "type": "ds.chain"
+        },
+        "ds_total_count": {
+            "name": "Total Count",
+            "options": {
+                "extend": "ds_base",
+                "query": "| stats count"
+            },
+            "type": "ds.chain"
+        }
+    },
+    "defaults": {
+        "dataSources": {
+            "ds.search": {
+                "options": {
+                    "queryParameters": {
+                        "earliest": "$global_time.earliest$",
+                        "latest": "$global_time.latest$"
+                    }
+                }
+            },
+            "ds.spl2": {
+                "options": {
+                    "queryParameters": {
+                        "earliest": "$global_time.earliest$",
+                        "latest": "$global_time.latest$"
+                    }
+                }
+            }
+        },
+        "visualizations": {
+            "global": {
+                "showProgressBar": true
+            }
+        }
+    },
+    "description": "Search and investigate browser fingerprints by Full Hash, Tier1 Hash, IP address, or Attack Type.",
+    "inputs": {
+        "input_global_trp": {
+            "options": {
+                "defaultValue": "0,now",
+                "token": "global_time"
+            },
+            "title": "Global Time Range",
+            "type": "input.timerange"
+        },
+        "input_search_type": {
+            "options": {
+                "defaultValue": "show_all",
+                "items": [
+                    {
+                        "label": "Show All",
+                        "value": "show_all"
+                    },
+                    {
+                        "label": "Full Hash",
+                        "value": "full_hash"
+                    },
+                    {
+                        "label": "Tier1 Hash",
+                        "value": "tier1_hash"
+                    },
+                    {
+                        "label": "IP Address",
+                        "value": "ip"
+                    },
+                    {
+                        "label": "Attack Type",
+                        "value": "attack_type"
+                    }
+                ],
+                "token": "search_type"
+            },
+            "title": "Search By",
+            "type": "input.dropdown"
+        },
+        "input_search_value": {
+            "options": {
+                "defaultValue": "*",
+                "token": "search_value"
+            },
+            "title": "Search Value",
+            "type": "input.text"
+        }
+    },
+    "layout": {
+        "globalInputs": [
+            "input_global_trp",
+            "input_search_type",
+            "input_search_value"
+        ],
+        "options": {
+            "display": "auto",
+            "height": 960,
+            "submitButton": true,
+            "submitOnDashboardLoad": true,
+            "width": 1440
+        },
+        "structure": [
+            {
+                "item": "viz_total_count",
+                "position": {
+                    "h": 120,
+                    "w": 300,
+                    "x": 20,
+                    "y": 20
+                },
+                "type": "block"
+            },
+            {
+                "item": "viz_proxy_count",
+                "position": {
+                    "h": 120,
+                    "w": 300,
+                    "x": 340,
+                    "y": 20
+                },
+                "type": "block"
+            },
+            {
+                "item": "viz_private_count",
+                "position": {
+                    "h": 120,
+                    "w": 300,
+                    "x": 660,
+                    "y": 20
+                },
+                "type": "block"
+            },
+            {
+                "item": "viz_attack_type_chart",
+                "position": {
+                    "h": 280,
+                    "w": 440,
+                    "x": 980,
+                    "y": 20
+                },
+                "type": "block"
+            },
+            {
+                "item": "viz_ip_table",
+                "position": {
+                    "h": 140,
+                    "w": 940,
+                    "x": 20,
+                    "y": 160
+                },
+                "type": "block"
+            },
+            {
+                "item": "viz_results_table",
+                "position": {
+                    "h": 620,
+                    "w": 1400,
+                    "x": 20,
+                    "y": 320
+                },
+                "type": "block"
+            }
+        ],
+        "type": "absolute"
+    },
+    "title": "Threat Intel",
+    "visualizations": {
+        "viz_attack_type_chart": {
+            "dataSources": {
+                "primary": "ds_attack_type_count"
+            },
+            "options": {
+                "labelDisplay": "valuesAndPercentage"
+            },
+            "title": "Attack Types",
+            "type": "splunk.pie"
+        },
+        "viz_ip_table": {
+            "dataSources": {
+                "primary": "ds_ip_count"
+            },
+            "options": {
+                "count": 20,
+                "drilldown": "none"
+            },
+            "title": "Unique IPs",
+            "type": "splunk.table"
+        },
+        "viz_private_count": {
+            "dataSources": {
+                "primary": "ds_private_count"
+            },
+            "options": {
+                "backgroundColor": "transparent",
+                "majorColor": "#a9d4ff",
+                "majorFontSize": 48
+            },
+            "title": "Private Browsing",
+            "type": "splunk.singlevalue"
+        },
+        "viz_proxy_count": {
+            "dataSources": {
+                "primary": "ds_proxy_count"
+            },
+            "options": {
+                "backgroundColor": "transparent",
+                "majorColor": "#f8c555",
+                "majorFontSize": 48
+            },
+            "title": "Via Proxy",
+            "type": "splunk.singlevalue"
+        },
+        "viz_results_table": {
+            "dataSources": {
+                "primary": "ds_observations_search"
+            },
+            "options": {
+                "count": 10000,
+                "drilldown": "none",
+                "showRowNumbers": true
+            },
+            "title": "Observation Results",
+            "type": "splunk.table"
+        },
+        "viz_total_count": {
+            "dataSources": {
+                "primary": "ds_total_count"
+            },
+            "options": {
+                "backgroundColor": "transparent",
+                "majorColor": "#ffffff",
+                "majorFontSize": 48
+            },
+            "title": "Total Observations",
+            "type": "splunk.singlevalue"
+        }
+    }
+}
