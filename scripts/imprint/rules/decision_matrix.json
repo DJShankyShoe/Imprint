@@ -1,0 +1,8 @@
+{
+  "credential_stuffing":    { "low": ["allow"],      "medium": ["CAPTCHA"],           "high": ["OTP"],                   "critical": ["RATE_LIMIT", "OTP"] },
+  "bot_scraping":           { "low": ["allow"],      "medium": ["CAPTCHA"],           "high": ["RATE_LIMIT", "CAPTCHA"], "critical": ["HONEYPOT"] },
+  "injection_attack":       { "low": ["CAPTCHA"],    "medium": ["RATE_LIMIT", "OTP"], "high": ["HONEYPOT"],              "critical": ["BLOCK"] },
+  "reconnaissance":         { "low": ["allow"],      "medium": ["CAPTCHA"],           "high": ["RATE_LIMIT"],            "critical": ["HONEYPOT"] },
+  "automated_exploitation": { "low": ["RATE_LIMIT"], "medium": ["HONEYPOT"],          "high": ["HONEYPOT"],              "critical": ["BLOCK"] },
+  "unknown":                { "low": ["allow"],      "medium": ["CAPTCHA"],           "high": ["CAPTCHA"],               "critical": ["RATE_LIMIT"] }
+}

@@ -1,0 +1,6 @@
+{
+  "sqli": { "category": "injection_attack", "severity_floor": 80 },
+  "rce":  { "category": "injection_attack", "severity_floor": 85 },
+  "phpi": { "category": "injection_attack", "severity_floor": 80 },
+  "xss":  { "category": "injection_attack", "severity_floor": 50 }
+}
