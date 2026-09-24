@@ -1,5 +1,5 @@
 {
-  "credential_stuffing":    { "low": ["allow"],      "medium": ["CAPTCHA"],           "high": ["OTP"],                   "critical": ["RATE_LIMIT", "OTP"] },
+  "credential_stuffing":    { "low": ["allow"],      "medium": ["CAPTCHA"],           "high": ["RATE_LIMIT"],            "critical": ["RATE_LIMIT", "OTP"] },
   "bot_scraping":           { "low": ["allow"],      "medium": ["CAPTCHA"],           "high": ["RATE_LIMIT", "CAPTCHA"], "critical": ["HONEYPOT"] },
   "injection_attack":       { "low": ["CAPTCHA"],    "medium": ["RATE_LIMIT", "OTP"], "high": ["HONEYPOT"],              "critical": ["BLOCK"] },
   "reconnaissance":         { "low": ["allow"],      "medium": ["CAPTCHA"],           "high": ["RATE_LIMIT"],            "critical": ["HONEYPOT"] },

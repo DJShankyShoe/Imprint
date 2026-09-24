@@ -57,6 +57,8 @@ services:
       - payload_keys:/keys/payload     # service only
       - session_keys:/keys/session     # shared with web
       - audit_logs:/data/audit
+      # Enforcement policy - edit on the host, restart the service to apply
+      - ./scripts/imprint/rules:/opt/imprint/rules:ro
     # Service API (keep on an internal interface)
     ports:
       - "${IMPRINT_BIND:-127.0.0.1:8080}:8080"
