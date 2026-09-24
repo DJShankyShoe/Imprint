@@ -171,7 +171,9 @@ Runs in the service whenever an alert adds an observation to a fingerprint.
 alert → observation stored → feature record → classify (Claude) → guardrails → decision matrix → actions {tier1, full}
 ```
 
-**Feature record:** the current event (alert name, IP, country, proxy, browser, OS), device signals (VM, WebGL, platform), identity match (how many full hashes share this tier1 hash) and history (attack types, distinct IPs and countries). The raw fingerprint is not sent.
+**Feature record:** the current event (alert name, IP, country, proxy, browser, OS), device signals (VM, WebGL, platform), identity match (how many full hashes share this tier1 hash) and history (attack types, distinct IPs and countries, first and last observation in UTC). The raw fingerprint is not sent.
+
+It carries no attempt counts or rates - how fast an attack came is decided by the alert threshold in your SIEM and reaches the classifier only as the alert name.
 
 **Categories:** `credential_stuffing`, `bot_scraping`, `injection_attack`, `reconnaissance`, `automated_exploitation`, `unknown`
 
@@ -185,6 +187,8 @@ alert → observation stored → feature record → classify (Claude) → guardr
 | Confirmed signals | alert names in `rules/confirmed_signals.json` force the category and a severity floor (`sqli` 80, `rce` 85, `phpi` 80, `xss` 50) |
 | Tier1 ceiling | a tier1 (hardware class) match never reaches HONEYPOT / BLOCK, unless corroborated: a confirmed signal **and** 2-3 attacking fingerprints on that hardware class |
 | Fail-safe | API error / timeout / no key → `CAPTCHA` (never allow, never block everyone) |
+
+An alert name without a `confirmed_signals.json` entry leaves the severity, and therefore the action, entirely to the model - the same alert can land one bucket higher or lower between runs. Add an entry for that name to pin its category and minimum severity.
 
 **Model:** `claude-haiku-4-5` by default (`IMPRINT_CLASSIFIER_MODEL` to change). `classify()` is one function, so the provider can be swapped without touching the rest.
 
@@ -321,7 +325,7 @@ Copy these folders from `webpage_modules/` into your site's document root:
 | Folder | What it does |
 |--------|--------------|
 | `fingerprint_scripts/` | JavaScript collector, page loader, `collect.php` (receives the fingerprint and forwards it to the service) |
-| `modules/` | `imprint_uid` cookie handling, login / fingerprint check, `insert_actions.php` (asks the service for a decision) |
+| `modules/` | `imprint_uid` cookie handling, login / fingerprint check, `insert_actions.php` (asks the service for a decision, logs failed logins) |
 | `includes/actions/` | Enforcement: CAPTCHA, OTP, rate limit, honeypot redirect, block |
 
 Add the rewrite rule to your Apache vhost (needs `mod_rewrite`):
@@ -375,7 +379,7 @@ executeActions([                         // apply them (CAPTCHA / OTP / RATE_LIM
 
 #### Part 2: Connect Your Monitoring
 
-**Detection** - any detection source works (WAF, IDS, application logs... see [Detection Sources](#detection-sources)). It must record the request's `imprint_uid` cookie: that is the only way the service can tell which visitor attacked. ModSecurity in detection-only mode (`waf/modsecurity.conf`) is the tested setup.
+**Detection** - any detection source works (WAF, IDS, application logs... see [Detection Sources](#detection-sources)). It must record the request's `imprint_uid` cookie: that is the only way the service can tell which visitor attacked. ModSecurity in detection-only mode (`waf/modsecurity.conf`) is the setup the POC ships with.
 
 **Alerting with Splunk:**
 1. Install `splunk_app/imprint` on your Splunk
