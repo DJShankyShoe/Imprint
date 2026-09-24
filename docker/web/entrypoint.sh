@@ -50,10 +50,10 @@ if [ ! -f /etc/ssl/private/honeypot.key ]; then
 fi
 
 # Log files (read by Splunk)
-mkdir -p /var/log/imprint/commands
-touch /var/log/imprint/modsec_audit.log /var/log/imprint/endpoint_debug.log       /var/log/imprint/auth_debug.log /var/log/imprint/status.txt /var/log/imprint/commands/commands.txt
-chown www-data:www-data /var/log/imprint/endpoint_debug.log /var/log/imprint/auth_debug.log       /var/log/imprint/status.txt /var/log/imprint/commands /var/log/imprint/commands/commands.txt
-chmod 755 /var/log/imprint /var/log/imprint/commands
-chmod 644 /var/log/imprint/*.log /var/log/imprint/*.txt /var/log/imprint/commands/commands.txt
+mkdir -p /var/log/imprint/commands /var/log/imprint/auth
+touch /var/log/imprint/modsec_audit.log /var/log/imprint/endpoint_debug.log       /var/log/imprint/auth_debug.log /var/log/imprint/status.txt /var/log/imprint/commands/commands.txt /var/log/imprint/auth/failed_logins.log
+chown www-data:www-data /var/log/imprint/endpoint_debug.log /var/log/imprint/auth_debug.log       /var/log/imprint/status.txt /var/log/imprint/commands /var/log/imprint/commands/commands.txt       /var/log/imprint/auth /var/log/imprint/auth/failed_logins.log
+chmod 755 /var/log/imprint /var/log/imprint/commands /var/log/imprint/auth
+chmod 644 /var/log/imprint/*.log /var/log/imprint/*.txt /var/log/imprint/commands/commands.txt /var/log/imprint/auth/failed_logins.log
 
 exec "$@"

@@ -22,6 +22,31 @@ function trackingUID()
 	return ($session && !empty($session['UID'])) ? $session['UID'] : null;
 }
 
+// Log a failed login so the SIEM can alert on repeated attempts
+function logFailedLogin($username, $site = '')
+{
+	$logDir = '/var/log/imprint/auth/';
+	if (!is_dir($logDir)) {
+		@mkdir($logDir, 0775, true);
+	}
+
+	$entry = json_encode([
+		'timestamp' => '[' . date('d:M:Y:H:i:s', time()) . ' +0000]',
+		'uid' => trackingUID(),
+		'username' => $username,
+		'ip' => $_SERVER['REMOTE_ADDR'] ?? 'unknown',
+		'user_agent' => $_SERVER['HTTP_USER_AGENT'] ?? 'unknown',
+		'site' => $site ?: ($_SERVER['HTTP_HOST'] ?? 'unknown'),
+	], JSON_UNESCAPED_SLASHES) . "
+";
+
+	$fh = fopen($logDir . 'failed_logins.log', 'a');
+	if ($fh) {
+		fwrite($fh, $entry);
+		fclose($fh);
+	}
+}
+
 function updateTokenActions()
 {
 	$uid = trackingUID();

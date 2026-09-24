@@ -127,7 +127,7 @@ Categories:
 - automated_exploitation: tooling that chains or repeats exploit attempts at scale.
 - unknown: not enough signal to choose any of the above.
 
-severity (0-100) is how dangerous this actor is, considering attack type, repetition across observations, IP and country rotation, proxy or VM use, and evidence of fingerprint evasion (many observations under one hardware class with few distinct full fingerprints). A high count of distinct full fingerprints under one hardware class suggests unrelated visitors sharing common hardware, which is weaker evidence.
+severity (0-100) is how dangerous this actor is, considering attack type, repetition across observations, how long the actor has been active (history.activity gives the first and last observation in UTC), IP and country rotation, proxy or VM use, and evidence of fingerprint evasion (many observations under one hardware class with few distinct full fingerprints). A high count of distinct full fingerprints under one hardware class suggests unrelated visitors sharing common hardware, which is weaker evidence.
 
 confidence (0-100) is how sure you are of the category.
 

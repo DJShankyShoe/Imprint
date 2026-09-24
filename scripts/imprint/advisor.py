@@ -18,7 +18,7 @@ WORKFLOW:
 
 import json
 import os
-from datetime import datetime
+from datetime import datetime, timezone
 
 from classify import CATEGORIES, ClassifierUnavailable, audit_log, classify
 from fingerprint_hash import get_nested_value
@@ -119,6 +119,26 @@ def match_confirmed_signal(alert_name, signals):
 # FEATURE RECORD
 # ============================================================================
 
+def observation_activity(observations):
+    """
+    How long this fingerprint has been attacking
+
+    Observation times are when alerts fired, not the raw attack rate (alert
+    suppression throttles them), so only the span is reported.
+
+    Args:
+        observations: observation list from the fingerprint doc
+
+    Returns:
+        dict with the first and last observation in UTC
+    """
+    times = sorted(o["timestamp"] for o in observations if o.get("timestamp"))
+    if not times:
+        return {"first_utc": None, "last_utc": None}
+    iso = lambda t: datetime.fromtimestamp(t / 1000, timezone.utc).isoformat(timespec="seconds")
+    return {"first_utc": iso(times[0]), "last_utc": iso(times[-1])}
+
+
 def build_feature_record(fingerprint_doc, fingerprint_data, distinct_full_hashes, match_tier):
     """
     Build classifier input from the stored fingerprint and current payload
@@ -177,6 +197,7 @@ def build_feature_record(fingerprint_doc, fingerprint_data, distinct_full_hashes
             "attack_labels_seen": labels,
             "distinct_ip_count": len({o.get("ip") for o in observations if o.get("ip")}),
             "distinct_countries": sorted({o.get("country") for o in observations if o.get("country")}),
+            "activity": observation_activity(observations),
         },
     }
 

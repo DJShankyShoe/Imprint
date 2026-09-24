@@ -51,6 +51,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         header('Location: /home/');
         exit;
     } else {
+        logFailedLogin($username, 'spacey');
         $error = 'Invalid credentials. Please try again.';
     }
 }
