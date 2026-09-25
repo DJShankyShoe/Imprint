@@ -476,7 +476,14 @@ To read a generated value later: `sudo grep IMPRINT_ALERT_TOKEN .env`
 | `scripts/imprint/rules/decision_matrix.json` | category × severity bucket → actions |
 | `scripts/imprint/rules/confirmed_signals.json` | alert names with a guaranteed category and severity floor |
 
-Both are read by the service; restart it after editing (`docker compose restart imprint`). New actions apply from the next observation of each fingerprint.
+Both are mounted read-only into the service from `scripts/imprint/rules/`, so editing them on the host and restarting applies the change - no image rebuild, and the container cannot modify its own policy:
+
+```bash
+sudo nano scripts/imprint/rules/decision_matrix.json
+sudo docker compose restart imprint
+```
+
+New actions apply from the next observation of each fingerprint; decisions already stored keep their current actions until then.
 
 ### MongoDB Authentication
 
@@ -575,7 +582,7 @@ After editing a JSON file, run `python3 splunk_app/dashboard/build_views.py` to 
 - Field extractions: `attack_type` via `\[tag "attack-(?<attack_type>sqli)"\]`, `imprint_uid` from the request `Cookie` header, `src_ip`, `uri`
 - Alert **`sqli`**: `index=imprint sourcetype=modsec:audit attack_type=sqli imprint_uid=*`, every minute, per result, suppressed per `imprint_uid` for 5 minutes, action **Imprint Alert** (`field_name=imprint_uid`, `data_format=encrypted`)
 - Alert **`brute_force`**: 5+ failed logins from one visitor in 5 minutes
-- Alert **`brute_force_burst`**: 15+ failed logins from one visitor in 1 minute
+- Alert **`brute_force_burst`**: 15+ failed logins from one visitor in 1 minute, as a **real-time search** so a script is throttled seconds after it starts instead of on the next scheduled minute (measured: ~13 s from the last attempt to the stored decision, against 17-70 s on a cron schedule). It holds one search slot permanently; drop `realtime_schedule` back to a cron schedule if you would rather not pay that.
 
 The two failed-login alerts show how **the SIEM classifies the velocity, not the AI**. The feature record carries no attempt counts or rates, so "5 attempts over 5 minutes" and "50 in 10 seconds" look identical to the classifier - the difference reaches it only as the alert name (`brute_force` vs `brute_force_burst`). Add thresholds you care about as separate alerts; each name becomes its own attack type.
 
