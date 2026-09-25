@@ -53,6 +53,8 @@ services:
       IMPRINT_SITE_TOKEN: ${IMPRINT_SITE_TOKEN:?set IMPRINT_SITE_TOKEN in .env}
       IMPRINT_ALERT_TOKEN: ${IMPRINT_ALERT_TOKEN:?set IMPRINT_ALERT_TOKEN in .env}
       IMPRINT_CLASSIFIER_MODEL: ${IMPRINT_CLASSIFIER_MODEL:-claude-haiku-4-5}
+      IMPRINT_GEO_URL: ${IMPRINT_GEO_URL:-}
+      IMPRINT_GEO_TIMEOUT: ${IMPRINT_GEO_TIMEOUT:-}
     volumes:
       - payload_keys:/keys/payload     # service only
       - session_keys:/keys/session     # shared with web
@@ -79,6 +81,7 @@ services:
     environment:
       IMPRINT_SERVICE_URL: http://imprint:8080
       IMPRINT_SITE_TOKEN: ${IMPRINT_SITE_TOKEN}
+      IMPRINT_COLLECTOR_PATH: ${IMPRINT_COLLECTOR_PATH:-}
       SPACEY_USERS: ${SPACEY_USERS:?set SPACEY_USERS in .env}
       SPACEY_DB_HOST: ${SPACEY_DB_HOST:-localhost}
       SPACEY_DB_NAME: ${SPACEY_DB_NAME:-spacey}

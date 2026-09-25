@@ -1087,22 +1087,22 @@ void (async () => {
   debugLog('========================================');
   
   // Check 1: Endpoint URL
-  if (!window.FP_ENDPOINT_URL) {
-    debugError('❌ BLOCKED: window.FP_ENDPOINT_URL is not defined');
+  if (!window.__ac) {
+    debugError('❌ BLOCKED: window.__ac is not defined');
     debugLog('Script will not run - endpoint URL missing');
     return;
   }
-  debugLog('✓ Endpoint URL found:', window.FP_ENDPOINT_URL);
+  debugLog('✓ Endpoint URL found:', window.__ac);
 
-  // Signal that fingerprint script has loaded and started
-  window.FINGERPRINT_STARTED = true;
-  debugLog('✓ Set window.FINGERPRINT_STARTED = true');
+  // Signal that script has loaded and started
+  window.__acRun = true;
+  debugLog('✓ Set window.__acRun = true');
 
   // Check 2: Valid session
   debugLog('Checking session status...');
   debugLog('  window.HAS_VALID_SESSION =', window.HAS_VALID_SESSION);
   if (window.HAS_VALID_SESSION === true) {
-    debugLog('✓ User has valid session - skipping fingerprint collection');
+    debugLog('✓ User has valid session - skipping the check');
     debugLog('🎉 ALLOWING PAGE ACCESS (valid session)');
     return;
   }
@@ -1127,7 +1127,7 @@ void (async () => {
 
   // Collect fingerprint
   debugLog('');
-  debugLog('📊 Starting fingerprint collection...');
+  debugLog('📊 Starting the check...');
   const system = new CompleteFingerprintSystem();
   const payload = await system.generate();
   debugLog('✓ Fingerprint collected:', Object.keys(payload.components).length, 'components');
@@ -1144,12 +1144,12 @@ void (async () => {
     
     // Check for RSA key
     debugLog('Checking for RSA public key...');
-    debugLog('  window.FP_RSA_PUBLIC_KEY_PEM present:', !!window.FP_RSA_PUBLIC_KEY_PEM);
+    debugLog('  window.__ak present:', !!window.__ak);
     
-    if (window.FP_RSA_PUBLIC_KEY_PEM) {
+    if (window.__ak) {
       debugLog('');
       debugLog('🔐 Encrypting fingerprint data...');
-      const jwe = new JWEEncryption(window.FP_RSA_PUBLIC_KEY_PEM);
+      const jwe = new JWEEncryption(window.__ak);
       const encrypted = await jwe.encrypt(plaintext);
       
       requestBody = JSON.stringify(encrypted);
@@ -1167,12 +1167,12 @@ void (async () => {
     
     debugLog('');
     debugLog('📡 Sending fingerprint to server...');
-    debugLog('  URL:', window.FP_ENDPOINT_URL);
+    debugLog('  URL:', window.__ac);
     debugLog('  Method: POST');
     debugLog('  Content-Type:', contentType);
     debugLog('  Body size:', requestBody.length, 'bytes');
     
-    const fpRes = await fetch(window.FP_ENDPOINT_URL, {
+    const fpRes = await fetch(window.__ac, {
       method: "POST",
       headers: {
         "Content-Type": contentType
@@ -1191,8 +1191,8 @@ void (async () => {
       debugLog('');
       debugLog('✅ ✅ ✅ Fingerprint sent successfully! ✅ ✅ ✅');
       debugLog('');
-      debugLog('🎉 Dispatching fingerprintSuccess event...');
-      window.dispatchEvent(new CustomEvent('fingerprintSuccess'));
+      debugLog('🎉 signalling success');
+      window.dispatchEvent(new CustomEvent('__acOk'));
       debugLog('✓ Event dispatched');
       sessionStorage.removeItem("fp_sent");
       
@@ -1215,8 +1215,8 @@ void (async () => {
       }
       
       debugLog('');
-      debugLog('🎯 Dispatching fingerprintError event...');
-      window.dispatchEvent(new CustomEvent('fingerprintError', { 
+      debugLog('🎯 signalling failure');
+      window.dispatchEvent(new CustomEvent('__acErr', { 
         detail: `HTTP ${fpRes.status}: ${fpRes.statusText}`
       }));
       sessionStorage.removeItem("fp_sent");
@@ -1230,8 +1230,8 @@ void (async () => {
     debugError('  Stack trace:', e.stack);
     
     debugLog('');
-    debugLog('🎯 Dispatching fingerprintError event...');
-    window.dispatchEvent(new CustomEvent('fingerprintError', { 
+    debugLog('🎯 signalling failure');
+    window.dispatchEvent(new CustomEvent('__acErr', { 
       detail: e.message || 'Network error'
     }));
     sessionStorage.removeItem("fp_sent");

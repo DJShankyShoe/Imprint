@@ -119,7 +119,7 @@ Both modes run the same service image; the POC only adds the example containers.
 - **Full signatures** (Higher confidence): Tier 1 + Canvas hash + WebGL renderer + Audio fingerprint
 - **Passive collection**: Runs silently in background—users never know it's happening
 - **Cookieless persistence**: Survives clearing history, incognito mode, and browser restarts
-- **Server-side geolocation**: the service looks up the visitor's IP (ip-api.com) - the browser never self-reports it
+- **Server-side geolocation**: the service looks up the visitor's IP itself - the browser never self-reports it. The provider is configurable (`IMPRINT_GEO_URL`), defaulting to ip-api.com
 
 ### AI Mitigation Advisor
 - **Classification, not decisions**: the model only returns a category, confidence and severity - it never picks the action
@@ -175,7 +175,20 @@ alert → observation stored → feature record → classify (Claude) → guardr
 
 It carries no attempt counts or rates - how fast an attack came is decided by the alert threshold in your SIEM and reaches the classifier only as the alert name.
 
-**Categories:** `credential_stuffing`, `bot_scraping`, `injection_attack`, `reconnaissance`, `automated_exploitation`, `unknown`
+**Categories:** the classifier's fixed vocabulary, and the row keys of the decision matrix. The category picks the row, the severity picks the column, and the cell is the action list.
+
+| Category | What it describes | Response profile |
+|----------|-------------------|------------------|
+| `credential_stuffing` | Automated login attempts with leaked or guessed credentials | Throttle, never block - the attacker looks like a customer who forgot their password |
+| `bot_scraping` | Automated crawling or content harvesting | Slow it down, then feed it the honeypot |
+| `injection_attack` | SQL, command, code, template or script injection | Escalates fastest: honeypot, then block |
+| `reconnaissance` | Probing, scanning, enumerating paths or technologies | Tolerant early, honeypot when persistent |
+| `automated_exploitation` | Tooling that chains or repeats exploits at scale | Starts at a rate limit, reaches a block |
+| `unknown` | Not enough signal to choose, or the confidence floor fired | Deliberately mild, never above a rate limit |
+
+The same severity deserves a different answer depending on the behaviour: a scraper and an injection attempt can both score 90, but one belongs in a honeypot and the other belongs blocked. The category is what carries that distinction.
+
+Categories are defined in two places that must agree - the enum and its descriptions in `scripts/imprint/classify.py`, and one row per category in `scripts/imprint/rules/decision_matrix.json`. Adding a category means editing both; a category with no matrix row cannot be mapped to actions.
 
 **Severity buckets:** low < 30, medium 30-59, high 60-84, critical ≥ 85
 
@@ -239,19 +252,19 @@ Manual equivalent: fill in `.env` / `mitigation.env` from the `.example` files, 
 | Splunk | `http://localhost:8000` | `admin` / `SPLUNK_PASSWORD` in `.env` |
 | Imprint service API | `http://127.0.0.1:8080` | Bearer tokens in `.env` |
 
-**Splunk licence:** the POC container starts on the Splunk **Enterprise Trial** (60 days). Starting it accepts the Splunk General Terms. Alerts need the trial (or a paid licence) - after 60 days Splunk converts to **Free**, which has no alerting, so the `sqli` alert stops firing.
+**Splunk licence:** the POC container starts on the Splunk **Enterprise Trial** (60 days). Starting it accepts the Splunk General Terms. Alerts need the trial (or a paid licence) - after 60 days Splunk converts to **Free**, which has no alerting.
 
 ### Integrating Your Website and Monitoring (Core)
 
 In core mode the Imprint server only runs MongoDB and the Imprint service. Your website and your monitoring tools run elsewhere and talk to the service over HTTP:
 
 ```
-  Your web server (PHP)                                         Your SIEM / monitoring
+  Your web server (PHP)                                                        Your SIEM / monitoring
   - fingerprints visitors    ── site token ──▶  Imprint   ◀── alert token ──  - reports attacks
-  - asks "what do I do with                     service                       - pulls observations
-    this visitor?" on                          (:8080)                          for its dashboard
-    required pages                                │
-                                               MongoDB
+  - asks "what do I do with                      service                       - pulls observations
+    this visitor?" on                            (:8080)                         for its dashboard
+    required pages                                  │
+                                                 MongoDB
 ```
 
 Two tokens from the Imprint server's `.env`: `IMPRINT_SITE_TOKEN` for your websites, `IMPRINT_ALERT_TOKEN` for your SIEM. Neither side ever gets MongoDB credentials.
@@ -434,6 +447,9 @@ Passwords and API keys live in two files next to `compose.yaml`. The installer c
 | `IMPRINT_SITE_TOKEN` | websites → service (slots, fingerprint upload, decision) |
 | `IMPRINT_ALERT_TOKEN` | SIEM / monitoring → service (alerts, observation export) |
 | `IMPRINT_BIND` | host interface:port where the service API listens (default `127.0.0.1:8080`) |
+| `IMPRINT_COLLECTOR_PATH` | public path of the collector script (empty = `/assets/js/app.min.js`) |
+| `IMPRINT_GEO_URL` | IP geolocation provider, `{ip}` replaced with the visitor IP (empty = ip-api.com) |
+| `IMPRINT_GEO_TIMEOUT` | seconds to wait for the geolocation provider (empty = 3) |
 | `ANTHROPIC_API_KEY` | AI mitigation advisor |
 | `SPACEY_USERS` | POC: SpaceY login users (`user:password,user:password`) |
 | `SPLUNK_PASSWORD` | POC: Splunk `admin` password |
@@ -484,6 +500,36 @@ sudo docker compose restart imprint
 ```
 
 New actions apply from the next observation of each fingerprint; decisions already stored keep their current actions until then.
+
+### Geolocation Provider
+
+The service resolves each visitor's IP itself. `IMPRINT_GEO_URL` takes a URL template where `{ip}` is replaced with the visitor's address; leaving it empty uses ip-api.com:
+
+```bash
+IMPRINT_GEO_URL='http://ip-api.com/json/{ip}?fields=21233405'   # the default
+IMPRINT_GEO_TIMEOUT='3'
+```
+
+A replacement provider must answer in the same shape (`query`, `status`, `country`, `city`, `isp`, `org`, `as`, `proxy`, `hosting`, `mobile`). Fields it does not return arrive empty, and `proxy` in particular feeds the classifier, so check the shape before switching. On any failure the service falls back to `unknown` values rather than dropping the submission.
+
+### What Visitors Can See
+
+The collector is served as an ordinary asset and the page exposes no product names:
+
+```html
+<script>
+  window.__ac = "/e/3f9a...e1.js?s=...";
+  window.__ak = "-----BEGIN PUBLIC KEY-----...";
+</script>
+<script src="/assets/js/app.min.js"></script>
+```
+
+- The script path is set by `IMPRINT_COLLECTOR_PATH`, so it differs per deployment
+- The one-time upload link is `/e/<128-bit id>.js`, with no telltale prefix
+- The collector source (`unobfuscated_*.js`) is denied by the vhost - only the built file is reachable
+- The `imprint_uid` cookie name is still visible in developer tools
+
+This is obscurity, not security: it raises the effort for a casual observer, and anyone who reads the script will still recognise canvas and WebGL probing. The controls that actually matter are the one-time links, the encryption and the server-side enforcement.
 
 ### MongoDB Authentication
 

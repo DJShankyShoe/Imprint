@@ -12,7 +12,7 @@ class FingerprintModule {
 
     public function __construct($config = []) {
         $defaults = [
-            'endpointWebPath' => "/endpoints/",
+            'endpointWebPath' => "/e/",
         ];
         $config = array_merge($defaults, $config);
         $this->endpointWebPath = rtrim($config['endpointWebPath'], '/') . '/';
@@ -49,16 +49,18 @@ class FingerprintModule {
             return;
         }
 
-        $endpointUrl  = htmlspecialchars($this->endpointWebPath . "fp_" . $slot['slot'] . ".php", ENT_QUOTES);
+        $endpointUrl  = htmlspecialchars($this->endpointWebPath . $slot['slot'] . ".js", ENT_QUOTES);
         $secret       = htmlspecialchars($slot['secret'], ENT_QUOTES);
         $rsaPublicKey = json_encode($slot['public_key']);
+        // Public path of the collector - override with IMPRINT_COLLECTOR_PATH
+        $collectorPath = htmlspecialchars(imprint_env('IMPRINT_COLLECTOR_PATH') ?: '/assets/js/app.min.js', ENT_QUOTES);
 
         echo <<<HTML
 <script>
-  window.FP_ENDPOINT_URL = "{$endpointUrl}?s={$secret}";
-  window.FP_RSA_PUBLIC_KEY_PEM = {$rsaPublicKey};
+  window.__ac = "{$endpointUrl}?s={$secret}";
+  window.__ak = {$rsaPublicKey};
 </script>
-<script src="/fingerprint_scripts/fingerprint.js"></script>
+<script src="{$collectorPath}"></script>
 HTML;
     }
 

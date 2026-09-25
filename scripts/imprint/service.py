@@ -176,6 +176,11 @@ def decrypt_session_token(private_key, token):
 # GEOLOCATION
 # ============================================================================
 
+# Geolocation provider ({ip} is replaced with the visitor IP). The default is
+# ip-api.com; a replacement must answer in the same shape
+GEO_URL = os.environ.get("IMPRINT_GEO_URL") or "http://ip-api.com/json/{ip}?fields=21233405"
+GEO_TIMEOUT = int(os.environ.get("IMPRINT_GEO_TIMEOUT") or 3)
+
 GEO_FALLBACK = {
     "status": "fail", "country": "unknown", "city": "unknown", "isp": "unknown", "org": "unknown",
     "as": "unknown", "proxy": False, "hosting": False, "mobile": False,
@@ -184,7 +189,7 @@ GEO_FALLBACK = {
 
 def get_geo_info(ip):
     """
-    Get geolocation info for an IP (ip-api.com)
+    Get geolocation info for an IP (provider from IMPRINT_GEO_URL)
 
     Args:
         ip: visitor IP address
@@ -198,7 +203,7 @@ def get_geo_info(ip):
     except ValueError:
         return fallback
     try:
-        with urllib.request.urlopen(f"http://ip-api.com/json/{ip}?fields=21233405", timeout=3) as resp:
+        with urllib.request.urlopen(GEO_URL.format(ip=ip), timeout=GEO_TIMEOUT) as resp:
             geo = json.loads(resp.read().decode("utf-8"))
     except Exception as e:
         logger.warning(f"Geo lookup failed for {ip}: {e}")

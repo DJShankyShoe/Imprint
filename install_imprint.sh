@@ -137,6 +137,9 @@ MONGO_PASSWORD=$(env_get "$ENV_FILE" MONGO_PASSWORD);                   MONGO_PA
 MONGO_DB=$(env_get "$ENV_FILE" MONGO_DB);                               MONGO_DB=${MONGO_DB:-imprint}
 IMPRINT_SITE_TOKEN=$(env_get "$ENV_FILE" IMPRINT_SITE_TOKEN);     IMPRINT_SITE_TOKEN=${IMPRINT_SITE_TOKEN:-$(openssl rand -hex 32)}
 IMPRINT_ALERT_TOKEN=$(env_get "$ENV_FILE" IMPRINT_ALERT_TOKEN);   IMPRINT_ALERT_TOKEN=${IMPRINT_ALERT_TOKEN:-$(openssl rand -hex 32)}
+IMPRINT_COLLECTOR_PATH=$(env_get "$ENV_FILE" IMPRINT_COLLECTOR_PATH)
+IMPRINT_GEO_URL=$(env_get "$ENV_FILE" IMPRINT_GEO_URL)
+IMPRINT_GEO_TIMEOUT=$(env_get "$ENV_FILE" IMPRINT_GEO_TIMEOUT)
 IMPRINT_BIND=$(env_get "$ENV_FILE" IMPRINT_BIND);                 IMPRINT_BIND=${IMPRINT_BIND:-127.0.0.1:8080}
 SPACEY_USERS=$(env_get "$ENV_FILE" SPACEY_USERS);                       SPACEY_USERS=${SPACEY_USERS:-admin:$(openssl rand -hex 8)}
 SPLUNK_PASSWORD=$(env_get "$ENV_FILE" SPLUNK_PASSWORD);                 SPLUNK_PASSWORD=${SPLUNK_PASSWORD:-$(openssl rand -hex 12)}
@@ -182,6 +185,11 @@ umask 077
     echo "IMPRINT_SITE_TOKEN='$IMPRINT_SITE_TOKEN'"
     echo "IMPRINT_ALERT_TOKEN='$IMPRINT_ALERT_TOKEN'"
     echo "IMPRINT_BIND='$IMPRINT_BIND'"
+    echo "# Public path of the collector script (empty = /assets/js/app.min.js)"
+    echo "IMPRINT_COLLECTOR_PATH='$IMPRINT_COLLECTOR_PATH'"
+    echo "# IP geolocation provider ({ip} = visitor IP, empty = ip-api.com)"
+    echo "IMPRINT_GEO_URL='$IMPRINT_GEO_URL'"
+    echo "IMPRINT_GEO_TIMEOUT='$IMPRINT_GEO_TIMEOUT'"
     echo ""
     echo "# Mitigation advisor (Claude API)"
     echo "ANTHROPIC_API_KEY='$ANTHROPIC_API_KEY'"

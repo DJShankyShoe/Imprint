@@ -16,6 +16,7 @@ COPY webpage_raw/spacey /var/www/spacey
 COPY webpage_raw/zebrapal /var/www/zebrapal
 COPY webpage_modules/fingerprint_scripts /var/www/zebrapal/fingerprint_scripts
 COPY webpage_modules/includes /var/www/zebrapal/includes
+COPY webpage_modules/assets /var/www/zebrapal/assets
 COPY webpage_raw/apache2_conf/spacey.conf webpage_raw/apache2_conf/zebrapal.conf /etc/apache2/sites-available/
 
 # Imprint PHP library

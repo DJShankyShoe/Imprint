@@ -2,7 +2,7 @@
 /**
  * Fingerprint Loader Module
  * 
- * Handles fingerprint collection initialization and rendering.
+ * Handles the check initialization and rendering.
  * 
  * Usage:
  *   $fpLoader = new FingerprintLoader($needsFingerprinting, ['debug' => true]); // Enable debug
@@ -229,21 +229,21 @@ class FingerprintLoader {
     }
     
     debugLog('========================================');
-    debugLog('🔧 Fingerprint Loader Started');
+    debugLog('loader started');
     debugLog('========================================');
     debugLog('Config:');
     debugLog('  Timeout:', TIMEOUT + 'ms');
     debugLog('  Blocked check delay:', BLOCKED_CHECK_DELAY + 'ms');
     debugLog('  Debug mode:', DEBUG ? 'ON' : 'OFF');
     
-    let fingerprintCompleted = false;
+    let checkDone = false;
     
     const cookies = document.cookie.split(';').map(c => c.trim());
     const trackingCookie = cookies.find(c => c.startsWith('imprint_uid='));
     const hasCookie = !!trackingCookie;
     
     debugLog('Checking for existing tracking cookie...');
-    debugLog('  imprint_uid cookie present:', hasCookie);
+    debugLog('  cookie present:', hasCookie);
     if (hasCookie && DEBUG) {
         debugLog('  Cookie value:', trackingCookie.substring(0, 50) + '...');
     }
@@ -258,27 +258,27 @@ class FingerprintLoader {
         return;
     }
     
-    debugLog('⚠️  No session cookie - will collect fingerprint');
+    debugLog('⚠️  no cookie - running check');
     debugLog('Starting timers...');
     
     const timeoutId = setTimeout(function() {
-        if (!fingerprintCompleted) {
-            debugError('❌ TIMEOUT - Fingerprint not completed after', TIMEOUT + 'ms');
+        if (!checkDone) {
+            debugError('❌ timed out after', TIMEOUT + 'ms');
             showBlockedMessage();
         }
     }, TIMEOUT);
     debugLog('✓ Set timeout timer:', TIMEOUT + 'ms');
     
     setTimeout(function() {
-        debugLog('Checking if fingerprint script loaded...');
-        debugLog('  window.FINGERPRINT_STARTED:', window.FINGERPRINT_STARTED);
-        debugLog('  fingerprintCompleted:', fingerprintCompleted);
+        debugLog('checking script state...');
+        debugLog('  window.__acRun:', window.__acRun);
+        debugLog('  checkDone:', checkDone);
         
-        if (!window.FINGERPRINT_STARTED && !fingerprintCompleted) {
-            debugError('❌ Fingerprint script did not start - may be blocked');
+        if (!window.__acRun && !checkDone) {
+            debugError('❌ script did not start - may be blocked');
             showBlockedMessage();
         } else {
-            debugLog('✓ Fingerprint script is running');
+            debugLog('✓ script is running');
         }
     }, BLOCKED_CHECK_DELAY);
     debugLog('✓ Set script check timer:', BLOCKED_CHECK_DELAY + 'ms');
@@ -292,19 +292,19 @@ class FingerprintLoader {
         document.getElementById('blocked-message').classList.add('show');
     }
     
-    window.addEventListener('fingerprintSuccess', function() {
+    window.addEventListener('__acOk', function() {
         debugLog('========================================');
-        debugLog('🎉 fingerprintSuccess event received!');
+        debugLog('🎉 collection ok');
         debugLog('========================================');
-        fingerprintCompleted = true;
+        checkDone = true;
         clearTimeout(timeoutId);
         debugLog('✓ Cleared timeout timer');
         debugLog('⏳ Page will reload soon...');
     });
     
-    window.addEventListener('fingerprintError', function(e) {
+    window.addEventListener('__acErr', function(e) {
         debugError('========================================');
-        debugError('❌ fingerprintError event received!');
+        debugError('❌ collection failed');
         debugError('  Error detail:', e.detail);
         debugError('========================================');
         clearTimeout(timeoutId);
@@ -312,7 +312,7 @@ class FingerprintLoader {
     });
     
     debugLog('✓ Event listeners registered');
-    debugLog('⏳ Waiting for fingerprint collection...');
+    debugLog('⏳ waiting for the check...');
 })();
 </script>
         <?php
