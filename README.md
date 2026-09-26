@@ -337,7 +337,8 @@ Copy these folders from `webpage_modules/` into your site's document root:
 
 | Folder | What it does |
 |--------|--------------|
-| `fingerprint_scripts/` | JavaScript collector, page loader, `collect.php` (receives the fingerprint and forwards it to the service) |
+| `fingerprint_scripts/` | Collector source (`unobfuscated_fingerprint.js`), page loader, `collect.php` (receives the fingerprint and forwards it to the service) |
+| `assets/js/` | The built collector (`app.min.js`) - the only file of the three the browser ever downloads |
 | `modules/` | `imprint_uid` cookie handling, login / fingerprint check, `insert_actions.php` (asks the service for a decision, logs failed logins) |
 | `includes/actions/` | Enforcement: CAPTCHA, OTP, rate limit, honeypot redirect, block |
 
@@ -345,10 +346,15 @@ Add the rewrite rule to your Apache vhost (needs `mod_rewrite`):
 
 ```apache
 RewriteEngine On
-RewriteRule ^/endpoints/fp_([a-f0-9]{32})\.php$ /fingerprint_scripts/collect.php?slot=$1 [QSA,L]
+RewriteRule ^/e/([a-f0-9]{32})\.js$ /fingerprint_scripts/collect.php?slot=$1 [QSA,L]
+
+# The collector source is not for visitors
+<FilesMatch "^unobfuscated_.*\.js$">
+    Require all denied
+</FilesMatch>
 ```
 
-Each page that fingerprints visitors gives the browser a [slot](#key-terms) - a one-time upload link such as `/endpoints/fp_3f9a...e1.php?s=...`. That file does not exist - the rule sends it to `collect.php`. Used, expired or made-up URLs return 404.
+Each page that fingerprints visitors gives the browser a [slot](#key-terms) - a one-time upload link such as `/e/3f9a...e1.js?s=...`. That file does not exist - the rule sends it to `collect.php`. Used, expired or made-up URLs return 404.
 
 **Step 5 - Call Imprint from your pages**
 
@@ -530,6 +536,30 @@ The collector is served as an ordinary asset and the page exposes no product nam
 - The `imprint_uid` cookie name is still visible in developer tools
 
 This is obscurity, not security: it raises the effort for a casual observer, and anyone who reads the script will still recognise canvas and WebGL probing. The controls that actually matter are the one-time links, the encryption and the server-side enforcement.
+
+#### Building the Collector
+
+The collector ships as two files per site:
+
+| File | Purpose |
+|------|---------|
+| `fingerprint_scripts/unobfuscated_fingerprint.js` | The source you edit. Never served - the vhost denies it |
+| `assets/js/app.min.js` | The obfuscated build the browser loads |
+
+There is no build script. The published file is produced with [js-confuser.com/editor](https://js-confuser.com/editor): paste the source, obfuscate, and save the output over `assets/js/app.min.js`.
+
+After editing the source, rebuild and replace **all three copies** (`webpage_modules`, `webpage_raw/spacey`, `webpage_raw/zebrapal`), then redeploy so the web image picks them up:
+
+```bash
+# all three must match
+md5sum webpage_modules/assets/js/app.min.js
+md5sum webpage_raw/spacey/assets/js/app.min.js
+md5sum webpage_raw/zebrapal/assets/js/app.min.js
+
+sudo docker compose --profile poc up -d --build web
+```
+
+The build reads `window.__ac` and `window.__ak` by name, so renaming those in the source means the old build stops collecting - silently, since nothing errors. If collection ever stops, check the browser's network tab for a POST to `/e/<hash>.js` before looking anywhere else.
 
 ### MongoDB Authentication
 
@@ -714,7 +744,7 @@ scripts/imprint/              # Imprint service (container: imprint)
 ├── clear_log.sh              # Cleanup script (MongoDB + logs + Splunk)
 └── rules/                    # decision_matrix.json, confirmed_signals.json
 
-webpage_modules/              # Integration modules for your site (fingerprint scripts, collect.php, actions)
+webpage_modules/              # Integration modules for your site (collector source + build, collect.php, actions)
 splunk_app/imprint/           # Splunk app: alert action, observation input, Threat Intel dashboard
 splunk_app/dashboard/         # Dashboard import files (Threat Intel, Honeypot) + build_views.py
 waf/modsecurity.conf          # ModSecurity config (detection only)
