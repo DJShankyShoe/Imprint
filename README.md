@@ -693,7 +693,7 @@ Alert names listed in `scripts/imprint/rules/confirmed_signals.json` get a guara
 
 ## 📊 Dashboard
 
-<img width="1918" height="1078" alt="dashboard" src="https://github.com/user-attachments/assets/b452ac42-0d10-468f-a3ed-28dafcbfe5a5" />
+<img width="1440" height="757" alt="image" src="https://github.com/user-attachments/assets/7ccae8a3-5ffb-4f80-a08d-a1f5eeb03677" />
 
 **Threat Intel** (shipped with the Imprint app):
 - Total observations, proxy usage, private browsing detection
