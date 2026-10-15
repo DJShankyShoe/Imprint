@@ -6,3 +6,7 @@ session_keys/
 # Python
 __pycache__/
 *.pyc
+
+# evaluation outputs
+eval/out/
+eval/out_mock/
